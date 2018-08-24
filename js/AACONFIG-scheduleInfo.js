@@ -37,6 +37,9 @@ courseInfo.classPeriods = [
 		topic: new Topic("Lecture 9: Decidability of Regular Languages", "lectures/lecture09.html"),
 		lab: new Lab("No lab", "")
 	},
+	{
+		topic: new Topic("** Exam 1", "")
+	},
 ];
 
 // The following is for the college-scheduled final exam.
