@@ -10,9 +10,9 @@ CS 340 - Programming Language Design
 
 Staff:
 
-> Instructor | Email | Office hours (KEC 113)
+> Instructor | Email | Office hours (KEC 101)
 > ---------- | ----- | ----------------------
-> [David Hovemeyer](http://faculty.ycp.edu/~dhovemey) | [dhovemey@ycp.edu](mailto:dhovemey@ycp.edu) | In KEC 101: TBD
+> [David Hovemeyer](http://faculty.ycp.edu/~dhovemey) | [dhovemey@ycp.edu](mailto:dhovemey@ycp.edu) | MWF 11 AM&ndash;12 PM, T/Th 1 PM&ndash;2 PM
 
 Meeting times:
 
