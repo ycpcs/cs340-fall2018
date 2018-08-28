@@ -16,6 +16,11 @@ To get started, run the following commands:
     wget https://ycpcs.github.io/cs340-fall2018/resources/regexChecker.jar
     wget https://ycpcs.github.io/cs340-fall2018/resources/regexEquivalenceChecker.jar
 
+If you don't have `wget` installed, you can also use `curl`:
+
+    curl -O https://ycpcs.github.io/cs340-fall2018/resources/regexChecker.jar
+    curl -O https://ycpcs.github.io/cs340-fall2018/resources/regexEquivalenceChecker.jar
+
 You can run the **regexChecker.jar** program with the command
 
     java -jar regexChecker.jar
