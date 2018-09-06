@@ -95,7 +95,7 @@ Language 4
 
 The fourth language contains all strings (over the alphabet {**a**, **b**, **c**}) that do not contain the substring **bc**.
 
-Avoiding the generation of a substring using a regular expression is difficult. However, matching a substring (and not accepting strings that contain it) using a regular expression is pretty easy!
+Avoiding the generation of a substring using a regular expression is difficult. However, matching a substring (and not accepting strings that contain it) using a finite automaton expression is pretty easy!
 
 Example strings which are in the language:
 
