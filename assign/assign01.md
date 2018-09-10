@@ -13,6 +13,8 @@ In the language descriptions below, *ε* (epsilon) denotes the empty string.
 
 Hint: see the ["Strategy" section of Lecture 1](../lectures/lecture01.html#strategy) for ideas about how to approach the more complicated languages.
 
+<div class="callout"><b>Important</b>: Your regular expressions must work correctly using the <code>regexChecker.jar</code> program.  Features of &ldquo;extended&ldquo; regular expression syntax, such as character classes, negative lookahead, reluctant matches, etc., are not allowed.  You should use only literal symbols, <b>e</b> for epsilon, parentheses for grouping, alternation (&#124;) and repetition (&#42; and &#43;).</div>
+
 # Languages
 
 Language 1
