@@ -113,6 +113,21 @@ The idea behind precedence climbing is that an infix expression is a sequence of
 
 Here is the pseudo-code (from the [Wikipedia article](http://en.wikipedia.org/wiki/Operator-precedence_parser)):
 
+    parse_expression ()
+        return parse_expression_1 (parse_primary (), 0)
+    
+    parse_expression_1 (lhs, min_precedence)
+        while the next token is a binary operator whose precedence is >= min_precedence
+            op := next token
+            rhs := parse_primary ()
+            while the next token is a binary operator whose precedence is greater
+                     than op's, or a right-associative operator
+                     whose precedence is equal to op's
+                lookahead := next token
+                rhs := parse_expression_1 (rhs, lookahead's precedence)
+            lhs := the result of applying op with operands lhs and rhs
+        return lhs
+
 The idea is that a call to *parse\_expression\_1* will attempt to build an expression by consuming operators (and their operands) from the input string for all operators whose precedence is at least as high as the current "minimum" precedence level. Each time a higher-precedence operator is encountered, or a right-associative operator at the same precedence level is encountered, a recursive call is made to parse the subexpression.
 
 Implementation
