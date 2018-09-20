@@ -133,7 +133,7 @@ The idea is that a call to *parse\_expression\_1* will attempt to build an expre
 Implementation
 --------------
 
-You can download [an implementation](precedenceClimbing.zip) of the precedence climbing algorithm, which is a modified version of the [recursive descent](recursiveDescent.zip) parser.  (Also: [Java implementation](PrecedenceClimbingJava.zip).)
+You can download [an implementation](precedenceClimbing.zip) of the precedence climbing algorithm, which is a modified version of the [recursive descent](recursiveDescent.zip) parser.  (Also: [Java implementation](../labs/PrecedenceClimbingJava.zip).)
 
 The **parse** method in the **Parser** class implements the algorithm:
 

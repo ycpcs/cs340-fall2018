@@ -270,4 +270,4 @@ then the output of the program will be
 
 This is a textual representation of the parse tree created by the parser.
 
-Note: Here is a Java version of the parser: [RecursiveDescentJava.zip](RecursiveDescentJava.zip).
+Note: Here is a Java version of the parser: [RecursiveDescentJava.zip](../labs/RecursiveDescentJava.zip).
