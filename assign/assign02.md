@@ -171,10 +171,33 @@ Submitting
 Create a zip file that has the JFLAP (.jff) files containing your automata for problems 1-5.
 
 <div class="callout">
+<p>
 Please note: you are submitting <em>one</em> zip file that contains <em>all</em> of your JFLAP files.
-Do <b>NOT</b> upload each JFLAP file as a separate submission.  Also note: you are submitting
-a <b>zip file</b>, not some other kind of archive file.  Please see me if you need help
-submitting your work.
+Do <b>NOT</b> upload each JFLAP file as a separate submission.
+</p>
+<p>
+Also note: you are submitting
+a <a href="https://en.wikipedia.org/wiki/Zip_(file_format)"><b>zip file</b></a>,
+not some other kind of archive file.  Some examples of archive files that
+are not zip files include:
+</p>
+<ul>
+<li><code>.tar.gz</code> files</li>
+<li><code>.tgz</code> files</li>
+<li><code>.rar</code> files</li>
+<li><code>.7z</code> files</li>
+</ul>
+<p>
+Zip files have a <code>.zip</code> file extension.  You can create them
+using, for example:
+</p>
+<ul>
+<li>The <code>zip</code> program under Cygwin, Linux, and Mac OS</li>
+<li>The "create compressed folder" option under the Windows file explorer</li>
+</ul>
+<p>
+Please see me if you need help submitting your work.
+</p>
 </div>
 
 Submit the zip file to Marmoset as **assign02**. The Marmoset URL is
