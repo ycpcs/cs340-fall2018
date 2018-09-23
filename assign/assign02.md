@@ -193,7 +193,7 @@ using, for example:
 </p>
 <ul>
 <li>The <code>zip</code> program under Cygwin, Linux, and Mac OS</li>
-<li>The "create compressed folder" option under the Windows file explorer</li>
+<li>The &ldquo;create compressed folder&rdquo; option under the Windows file explorer</li>
 </ul>
 <p>
 Please see me if you need help submitting your work.
