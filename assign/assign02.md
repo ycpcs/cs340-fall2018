@@ -170,6 +170,11 @@ Submitting
 
 Create a zip file that has the JFLAP (.jff) files containing your automata for problems 1-5.
 
+<div class="callout">
+Please note: you are submitting <em>one</em> zip file that contains <em>all</em> of your JFLAP files.
+Do <b>NOT</b> upload each JFLAP file as a separate submission.
+</div>
+
 Submit the zip file to Marmoset as **assign02**. The Marmoset URL is
 
 > <https://cs.ycp.edu/marmoset>
