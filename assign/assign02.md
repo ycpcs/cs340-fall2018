@@ -172,7 +172,9 @@ Create a zip file that has the JFLAP (.jff) files containing your automata for p
 
 <div class="callout">
 Please note: you are submitting <em>one</em> zip file that contains <em>all</em> of your JFLAP files.
-Do <b>NOT</b> upload each JFLAP file as a separate submission.
+Do <b>NOT</b> upload each JFLAP file as a separate submission.  Also note: you are submitting
+a <b>zip file</b>, not some other kind of archive file.  Please see me if you need help
+submitting your work.
 </div>
 
 Submit the zip file to Marmoset as **assign02**. The Marmoset URL is
