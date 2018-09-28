@@ -1,6 +1,6 @@
 ---
 layout: default
-title: "Assignment 4: Calculator"
+title: "Assignment 4: Calculator Language Interpreter"
 ---
 
 *Note: this assignment description is incomplete and will be updated*
@@ -79,7 +79,19 @@ While not *quite* a full programming language, it will be pretty close, and coul
 
 ## Basic ideas and concepts
 
-Yeah.
+The classes provided in the Eclipse project embody some important concepts.
+
+**Interpreter** is the interpreter class.  An instance of **Interpreter** evaluates expressions.
+
+The **Value** interface is the supertype for values.  There are two subclasses: **NumberValue**, representing an integer value, and **FunctionValue** representing a function.
+
+The **ValueType** enumeration is used to distinguish the two different kinds of values.  You can call the **getType** method on any **Value** object to determine its **ValueType**.  If it reports **NUMBER**, then the value is a **NumberValue**.  If it reports **FUNCTION**, it is a **FunctionValue**.
+
+For **NumberValue** objects, you can use the **getNumber** method to find out the integer value.
+
+For **FunctionValue** objects, you get use the **getFunctionParameters** method to get the list of parameter names, and the **getFunctionBody** method to get the function's body expression.
+
+There are fairly detailed javadoc comments for each of these classes and methods.
 
 ## Step 1
 
@@ -211,6 +223,10 @@ Also note: the result of evaluating an **ASSIGN** node should be the value found
 
 The third step is to add support for functions and function calls.
 
+A function is a list of parameter names and a body expression.  The created function will be an instance of **FunctionValue**, and so can be assigned to a variable (in order to give the function a name.)
+
+A function call finds the function associated with the function name, evaluates the list of arguments, creates a new environment (with the current environment as its parent), binds each of the called function's parameter names to its corresponding argument value (in the new environment), and finally evaluates the called function's body expression in the new environment.
+
 Example session (user input in **bold**):
 
 <pre>
@@ -243,7 +259,7 @@ PRIMARY
 |        +--INT_LITERAL("3")
 +--RPAREN(")")
 => 6
-> <b>f(f(4))</b>
+> <b>f(f(5))</b>
 PRIMARY
 +--IDENTIFIER("f")
 +--LPAREN("(")
@@ -255,11 +271,11 @@ PRIMARY
 |        +--OPT_ARGUMENT_LIST
 |        |  +--ARGUMENT_LIST
 |        |     +--PRIMARY
-|        |        +--INT_LITERAL("4")
+|        |        +--INT_LITERAL("5")
 |        +--RPAREN(")")
 +--RPAREN(")")
-=> 16
-> <b>g = fn(y) { f(y+1) }</b>
+=> 20
+> <b>g = fn(y, z) { f(y) - z }</b>
 ASSIGN
 +--PRIMARY
 |  +--IDENTIFIER("g")
@@ -269,31 +285,38 @@ ASSIGN
    +--OPT_PARAMETER_LIST
    |  +--PARAMETER_LIST
    |     +--IDENTIFIER("y")
+   |     +--COMMA(",")
+   |     +--PARAMETER_LIST
+   |        +--IDENTIFIER("z")
    +--RPAREN(")")
    +--LBRACE("{")
-   +--PRIMARY
-   |  +--IDENTIFIER("f")
-   |  +--LPAREN("(")
-   |  +--OPT_ARGUMENT_LIST
-   |  |  +--ARGUMENT_LIST
-   |  |     +--PLUS
-   |  |        +--PRIMARY
-   |  |        |  +--IDENTIFIER("y")
-   |  |        +--PRIMARY
-   |  |           +--INT_LITERAL("1")
-   |  +--RPAREN(")")
+   +--MINUS
+   |  +--PRIMARY
+   |  |  +--IDENTIFIER("f")
+   |  |  +--LPAREN("(")
+   |  |  +--OPT_ARGUMENT_LIST
+   |  |  |  +--ARGUMENT_LIST
+   |  |  |     +--PRIMARY
+   |  |  |        +--IDENTIFIER("y")
+   |  |  +--RPAREN(")")
+   |  +--PRIMARY
+   |     +--IDENTIFIER("z")
    +--RBRACE("}")
 => &lt;&lt;function&gt;&gt;
-> <b>g(3)</b>
+> <b>g(8, 3)</b>
 PRIMARY
 +--IDENTIFIER("g")
 +--LPAREN("(")
 +--OPT_ARGUMENT_LIST
 |  +--ARGUMENT_LIST
 |     +--PRIMARY
-|        +--INT_LITERAL("3")
+|     |  +--INT_LITERAL("8")
+|     +--COMMA(",")
+|     +--ARGUMENT_LIST
+|        +--PRIMARY
+|           +--INT_LITERAL("3")
 +--RPAREN(")")
-=> 8
+=> 13
 </pre>
 
 ### Hints
@@ -317,7 +340,7 @@ To evaluate a function call:
 
 # Submitting
 
-When you are done, submit the lab to the Marmoset server using one of the methods below.
+When you are done, submit the assignment to the Marmoset server using one of the methods below.
 
 ## From Eclipse
 
