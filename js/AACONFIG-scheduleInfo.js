@@ -40,6 +40,10 @@ courseInfo.classPeriods = [
 	{
 		topic: new Topic("** Exam 1", "")
 	},
+	{
+		topic: new Topic("Lecture 10: Interpreters", "lectures/lecture10.html"),
+		lab: new NumberedLabNoFile("Lab 10: Calculator implementation")
+	},
 ];
 
 // The following is for the college-scheduled final exam.
