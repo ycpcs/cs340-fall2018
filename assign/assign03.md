@@ -198,7 +198,7 @@ Your parser will be graded according the following criteria:
 
 # Submitting
 
-When you are done, submit the lab to the Marmoset server using one of the methods below.
+When you are done, submit the assignment to the Marmoset server using one of the methods below.
 
 ## From Eclipse
 
