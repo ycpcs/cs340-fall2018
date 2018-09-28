@@ -5,7 +5,7 @@ title: "Assignment 4: Calculator"
 
 *Note: this assignment description is incomplete and will be updated*
 
-**Due**: Thursday, Oct 11th by 11:59 PM
+**Due**: Friday, Oct 12th by 11:59 PM
 
 Getting Started
 ===============
@@ -130,7 +130,7 @@ DIVIDES
 |  +--IDENTIFIER("theAnswer")
 +--PRIMARY
    +--INT_LITERAL("2")
-=> 84
+=> 21
 </pre>
 
 ### Hints
@@ -295,6 +295,47 @@ PRIMARY
 +--RPAREN(")")
 => 8
 </pre>
+
+### Hints
+
+To evaluate a function:
+
+1. Gather all of the parameter names into a **List**
+2. Create a **FunctionValue** object with the collected parameter list and the body expression as its body
+
+The result of evaluating a function is the **FunctionValue**.
+
+Note that a traversal of the **OPT\_PARAMETER\_LIST** subtree will be needed to collect all of the parameter names.
+
+To evaluate a function call:
+
+1. Recursively evaluate the identifier naming the function to find its value (which should be a **FunctionValue**)
+2. Gather all of the argument values (storing them in a **List**)
+3. Create a new **Environment** with the current environment (`env`) as its parent
+4. Use the **put** method to bind (assign) each argument value to its corresponding parameter
+5. Return the result of recursively evaluating the called function's body in the new environment
+
+# Submitting
+
+When you are done, submit the lab to the Marmoset server using one of the methods below.
+
+## From Eclipse
+
+If you have the [Simple Marmoset Uploader Plugin](../resources/index.html) installed, select the project (**CS340\_Assign04**) in the package explorer and then press the blue up arrow button in the toolbar. Enter your Marmoset username and password when prompted.
+
+This is the recommended way to submit your work.
+
+## From a web browser
+
+Save the project (**CS340\_Assign04**) to a zip file by right-clicking it and choosing
+
+> **Export...&rarr;Archive File**
+
+Upload the saved zip file to the Marmoset server as **assign04**. The server URL is
+
+> <https://cs.ycp.edu/marmoset/>
+
+Use this method only if there is some reason why you can't use the plugin.
 
 <!-- vim:set wrap: ­-->
 <!-- vim:set linebreak: -->
