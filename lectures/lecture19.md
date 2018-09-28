@@ -1,39 +1,178 @@
 ---
 layout: default
-title: "Lecture 19: Virtual Machines"
+title: "Lecture 19: Clojure reader and evaluator"
 ---
 
-# Language implementation strategies
+# Code = data
 
-An implementation of a programming language must provide some mechanism for executing programs.  There are several common strategies.
+You may have noticed that Clojure code and literal Clojure data structures look quite similar.  All function applications and special forms are sequences of items in parentheses, which look a lot like literal lists.  Parameter lists and variable definitions in the **let** and **loop** forms look a lot like vectors.  And so on.
 
-An *interpreter* converts the program into a data structure (often an abstract syntax tree), and then executes the program by evaluating the data structure, typically with the support of other run-time data structures such as an activation record stack and a heap for dynamic allocation.  Interpreters are (generally) easy to implement, and permit significant flexibility in what kinds of language features can be implemented.  Dynamic languages are often implemented using interpreters: this is true of the standard implementations of Ruby and Python.  Interpreters typically impose some overhead compared to machine code executed directly on the CPU: for example, it is not unusual for a program executed on an interpreter to take 10 times longer to complete a computationally-intensive task than an equivalent machine language program executing directly on the CPU.
+This is not a coincedence.  The Clojure language has a property called *homoiconicity*, which simply means that code and data have a common representation.
 
-A *compiler* converts the program into executable machine language.  The program is then loaded directly into memory by the operating system and executed directly on the CPU.  The operating system and a "runtime library" provide support for run-time data structures such as the stack and heap.  Compiled programs, if carefully optimized, can get arbitrarily close to achieving the maximum possible performance.  C and C++ are usually implemented by compilation.
+## Why this is useful
 
-A *virtual machine* permits a hybrid approach.  A virtual machine is essentially an interpreter for a "virtual" machine language: this virtual machine language is often called "bytecode".  The virtual machine may execute bytecode
+Because Clojure code is represented using Clojure data structures, it is possible to transform and generate code at runtime.  What's more, Clojure can *evaluate* data structures as code.  This raises the possibility of implementing new language features by simply writing Clojure code.
 
-* by interpreting it
-* by translating it to machine code at run-time ("Just In Time" compilation)
-* by using both interpretation and JIT compilation (many JVMs, including the default Hotspot JVM, work this way)
+First we will need to look at how Clojure code is read and evaluated.
 
-Java, Scala, Clojure, and C# are all typically implemented by compilation to virtual machine bytecode.  JavaScript is also usually implemented on a virtual machine (using interpretation and JIT compilation), although typically without an explicit bytecode representation.
+# The reader
 
-Virtual machines using JIT compilation can achieve performance comparable to the performance of natively compiled code.
+The *reader* is the component of Clojure responsible for translating textual representations of Clojure code and literal data structures (remember that due to homoiconicity, these are the same!) into actual (run-time) data structures.  In other words, it is the component which turns text such as
 
-Note that there is another meaning for the term "Virtual Machine", which is an environment which virtualizes an entire computer to permit executing of a guest operating system within a host operating system.  Examples of this type of "system-level" VM include VMWare, VirtualBox, KVM, Xen, QEMU, and many others.  There are important similarities between system-level and language VMs, and in many cases they share common implementation strategies.
+{% highlight clojure %}
+(+ 2 3)
+{% endhighlight %}
 
-# Benefits of virtual machines
+into a list where the symbol **+** is the first item, the number 2 is the second item, and the number 3 is the third item.
 
-Virtual Machines offer a number of benefits.
+The built-in `read-string` function applies the reader to a string and returns the resulting Clojure data structure.  E.g.:
 
-They can permit the same program to be run on different operating systems and CPU architectures.  The Java Virtual Machine (JVM) has been fairly successful in providing a consistent runtime environment on many OSes and CPUs.
+    user=> (read-string "(if 1 2 3)")
+    (if 1 2 3)
+    user=> (read-string "123")
+    123
+    user=> (read-string "[1 2 3]")
+    [1 2 3]
 
-They can enforce safety features.  For example, the JVM does not permit a program to access arbitrary memory or execute arbitrary machine code (except in the case of bugs in the JVM implementation.)  This can eliminate broad classes of bugs, such as stack overflows (which are a common cause of security vulnerabilities for C and C++ programs.)
+# The evaluator
 
-# Drawbacks of virtual machines
+The evaluator takes a Clojure data structure representing a form, and evaluates it.  You can invoke the evaluator directly using the **eval** function.  E.g.:
 
-The main drawback of virtual machines is memory and CPU overhead compared to natively compiled programs.  A virtual machine using JIT compilation requires CPU time to translate bytecode into optimized machine code, and requires memory for run-time structures (representations of the program code) that are not needed for native executables.  For long-running programs on computers with ample CPU and memory resources, this is often not a concern.  For resource-constrained environments, this may be more problematic.
+    user=> (eval (read-string "(+ 1 2)"))
+    3
+    user=> (eval '(+ 1 2))
+    3
+    user=> (eval (list '+ 1 2))
+    3
+
+In each case, we are evaluating a list with three elements &mdash; the symbol **+**, the number 1, and the number 2 &mdash; and evaluating it.  Since this data structure is the representation of a function application, evaluating it
+
+1. Looks up the function associated with the name "+" (the built-in addition function)
+2. Applies the function to the evaluated form of the arguments
+3. Returns the result of the function
+
+## What does the evaluator do?
+
+How the evaluator evaluates a form data structure depends on what kind it is.
+
+Some forms self-evaluate.  For example:
+
+* Numbers
+* Strings
+* Keyword values
+* The empty list
+
+A vector is evaluated by constructing a vector whose members are the results of evaluating the members of the original vector.  E.g.:
+
+    user=> (eval ['(+ 1 2) '(* 3 5)])
+    [3 15]
+
+A non-empty list evaluates either as a special form or a function evaluation, depending on what the first member of the list is.  E.g.:
+
+    user=> (eval '(if (> 3 4) "boo" "yah"))
+    "yah"
+    user=> (eval '(conj [:a :b] :c))
+    [:a :b :c]
+
+Symbols are one of the most interesting forms to evaluate: they represent a variable lookup.  E.g.:
+
+    user=> (def lunch "beans and rice")
+    #'user/lunch
+    user=> (eval 'lunch)
+    "beans and rice"
+
+## Preventing evaluation
+
+Sometimes it's important to *prevent* a form from being evaluated.  With self-evaluating forms such as numbers and keyword values, there's no need to prevent evaluation since the result of evaluation is the same as the original form.  However, it is useful to prevent the evaluation of lists and symbols.  A list is usually evaluated as a special form or a function application, so if you want a literal list, you need to prevent evaluation.  Similarly, a symbol is usually evaluated as a variable lookup, so if you want a literal symbol, again, you need to prevent evaluation.
+
+The good news is that Clojure makes it really simple to prevent evaluation through *quoting*:
+
+    user=> (+ 2 3)
+    5
+    user=> '(+ 2 3)
+    (+ 2 3)
+    user=> +
+    #object[clojure.core$_PLUS_ 0x2bc19629 "clojure.core$_PLUS_@2bc19629"]
+    user=> '+
+    +
+
+What we're seeing here is:
+
+1. The text `(+ 2 3)`, which the reader transforms into a list, is evaluated as a function application
+2. In the text `'(+ 2 3)`, the reader interprets the quote (`'`) character as meaning "prevent the evaluation of the next form", which produces a literal list as a result
+3. The text `+`, which the reader transforms into a symbol, is evaluated as a variable lookup, and by default the name "`+`" refers to the built-in "plus" function
+4. In the text `'+`, the quote prevents evaluation, yielding the literal symbol "`+`"
+
+So, now you know how quoting works and why it's necessary.
+
+Note that the single quote ("`'`") is a *reader macro* that converts the next expression *expr* into the special form
+
+> (**quote** *expr*)
+
+This special form tells the evaluator, "Hey evaluator, I know you would really like to evaluate *expr*, but don't do it, OK?  Just return it as a literal value."
+
+You can use this more verbose way of quoting directly if you want to:
+
+    user=> (quote (+ 1 2))
+    (+ 1 2)
+    user=> (quote +)
+    +
+
+# Macros
+
+So, the way Clojure works is that the reader turns code into data, and the evaluator carries out the computation embodied by the data.
+
+What if we could intervene in the process by changing the data produced by the reader before it goes on to the evaluator?  Then we could change the language itself.
+
+*Macros* offer precisely this capability.  A macro is a function which transforms a "raw" form as produced by the reader.
+
+## Example
+
+Let's say we're having trouble dealing with the fact that Clojure uses prefix syntax for function applications, including applications of arithmetic operators.  We can write a macro to allow us to use infix notation!
+
+{% highlight clojure %}
+(defmacro infix [left op right]
+  (list op left right))
+{% endhighlight %}
+
+Example use:
+
+    user=> (infix 2 + 3)
+    5
+
+One issue is that this macro does not recursively translate subexpressions from infix form to prefix form.  Better version:
+
+{% highlight clojure %}
+(defn from-infix [e]
+  (if (not (sequential? e))
+    e
+    (let [n (count e)]
+      (case n
+        1 (from-infix (first e))
+        3 (let [[left op right] e]
+            (list op (from-infix left) (from-infix right)))
+        (throw (RuntimeException. "infix expression must have 1 or 3 members"))))))
+
+(defmacro infix [& expr]
+  (from-infix expr))
+{% endhighlight %}
+
+Example use:
+
+    user=> (infix 2)
+    2
+    user=> (infix 2 + 3)
+    5
+    user=> (infix 2 * ((3) + 5))
+    16
+
+Some explanation:
+
+* the `sequential?` function returns true if its argument is a sequence (such as list)
+* the `case` form tests a value against a series of possibilities, returning a result expression on match: the `from-infix` function uses it to check whether the sequence containing an infix expression has 1 or 3 members
+* in the `infix` macro, the syntax `[& expr]` allows the macro to take any number of arguments, causing `expr` to be a sequence containing the arguments
+
+We just changed the language!  This example is somewhat frivolous, but macros can be tremendously powerful when applied thoughtfully.  With macros, you never need to wish that your programming language had a construct that would make your life easier.  You can just *add* the constructs you need.
 
 <!-- vim:set wrap: ­-->
 <!-- vim:set linebreak: -->

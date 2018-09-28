@@ -1,149 +1,40 @@
 ---
 layout: default
-title: "Lecture 21: More Erlang"
+title: "Lecture 21: Virtual Machines"
 ---
 
-Example code: [map.erl](map.erl), [filter.erl](filter.erl)
+# Language implementation strategies
 
-Anonymous Functions
-===================
+An implementation of a programming language must provide some mechanism for executing programs.  There are several common strategies.
 
-Many languages, including Clojure, Scala, and Ruby, have the ability to define "anonymous" blocks of code. An important use of such code blocks is to transform a series of values from a collection (e.g., passing an anonymous function to the Clojure **map** function.)
+An *interpreter* converts the program into a data structure (often an abstract syntax tree), and then executes the program by evaluating the data structure, typically with the support of other run-time data structures such as an activation record stack and a heap for dynamic allocation.  Interpreters are (generally) easy to implement, and permit significant flexibility in what kinds of language features can be implemented.  Dynamic languages are often implemented using interpreters: this is true of the standard implementations of Ruby and Python.  Interpreters typically impose some overhead compared to machine code executed directly on the CPU: for example, it is not unusual for a program executed on an interpreter to take 10 times longer to complete a computationally-intensive task than an equivalent machine language program executing directly on the CPU.
 
-Erlang supports anonymous functions. Because Erlang is dynamically-typed, an anonymous function can be assigned to a variable (Clojure allows this as well). You can think of an anonymous function as being a value, in much the same way that numbers, lists, and tuples are values in Erlang. Like all other values, they can be passed to functions and returned from functions.
+A *compiler* converts the program into executable machine language.  The program is then loaded directly into memory by the operating system and executed directly on the CPU.  The operating system and a "runtime library" provide support for run-time data structures such as the stack and heap.  Compiled programs, if carefully optimized, can get arbitrarily close to achieving the maximum possible performance.  C and C++ are usually implemented by compilation.
 
-Example:
+A *virtual machine* permits a hybrid approach.  A virtual machine is essentially an interpreter for a "virtual" machine language: this virtual machine language is often called "bytecode".  The virtual machine may execute bytecode
 
-<pre>
-1&gt; <b>Add1 = fun(N) -&gt; N+1 end.</b>
-#Fun&lt;erl_eval.6.80247286&gt;
-2&gt; <b>Add1(3).</b>
-4
-</pre>
+* by interpreting it
+* by translating it to machine code at run-time ("Just In Time" compilation)
+* by using both interpretation and JIT compilation (many JVMs, including the default Hotspot JVM, work this way)
 
-Here, we defined a function of one parameter **N** that adds 1 to its parameter and returns the result.
+Java, Scala, Clojure, and C# are all typically implemented by compilation to virtual machine bytecode.  JavaScript is also usually implemented on a virtual machine (using interpretation and JIT compilation), although typically without an explicit bytecode representation.
 
-More interesting example:
+Virtual machines using JIT compilation can achieve performance comparable to the performance of natively compiled code.
 
-<pre>
-3&gt; <b>AddN = fun(N) -&gt; fun(X) -&gt; N+X end end.</b>
-#Fun&lt;erl_eval.6.80247286&gt;
-4&gt; <b>Add12 = AddN(12).</b>
-#Fun&lt;erl_eval.6.80247286&gt;
-5&gt; <b>Add12(11).</b>
-23
-</pre>
+Note that there is another meaning for the term "Virtual Machine", which is an environment which virtualizes an entire computer to permit executing of a guest operating system within a host operating system.  Examples of this type of "system-level" VM include VMWare, VirtualBox, KVM, Xen, QEMU, and many others.  There are important similarities between system-level and language VMs, and in many cases they share common implementation strategies.
 
-In this example, the **AddN** function takes a parameter **N** and returns a function that adds **N** to its parameter **X**. By calling **AddN** with the argument value 12, we create a function that adds 12 to its parameter.
+# Benefits of virtual machines
 
-The concept of returning a function from a function is called *currying*.
+Virtual Machines offer a number of benefits.
 
-Transforming Lists
-==================
+They can permit the same program to be run on different operating systems and CPU architectures.  The Java Virtual Machine (JVM) has been fairly successful in providing a consistent runtime environment on many OSes and CPUs.
 
-Anonymous functions can be applied to lists to select or transform the values in the list.
+They can enforce safety features.  For example, the JVM does not permit a program to access arbitrary memory or execute arbitrary machine code (except in the case of bugs in the JVM implementation.)  This can eliminate broad classes of bugs, such as stack overflows (which are a common cause of security vulnerabilities for C and C++ programs.)
 
-One way to transform a list is to *map* a function onto each element of the list, producing a list of transformed values as a result.
+# Drawbacks of virtual machines
 
-Here is a possible implementation of a map function:
+The main drawback of virtual machines is memory and CPU overhead compared to natively compiled programs.  A virtual machine using JIT compilation requires CPU time to translate bytecode into optimized machine code, and requires memory for run-time structures (representations of the program code) that are not needed for native executables.  For long-running programs on computers with ample CPU and memory resources, this is often not a concern.  For resource-constrained environments, this may be more problematic.
 
-{% highlight erlang %}
--module(map).
--export([map/2]).
-
-map(_, []) -> [];
-map(F, [First|Rest]) -> [F(First) | map(F, Rest)].
-{% endhighlight %}
-
-The implementation is quite simple. The base case is an empty list, where the result is simply the empty list. In the recursive case, the function *F* is applied to the first element of the list, and prepended onto the list that results from recursively applying *F* to the rest of the list.
-
-Testing it on a list:
-
-<pre>
-8&gt; <b>map:map(fun(N) -&gt; N*2 end, [1, 2, 3]).</b>
-[2,4,6]
-</pre>
-
-Note that the implementation of **map** above is not tail-recursive. Here is a tail-recursive version:
-
-{% highlight erlang %}
--module(map).
--export([map/2]).
-
-mapwork(_, [], Accum) -> lists:reverse(Accum);
-mapwork(F, [First|Rest], Accum) -> mapwork(F, Rest, [F(First)|Accum]).
-
-map(F, L) -> mapwork(F, L, []).
-{% endhighlight %}
-
-Because the accumulator builds the result list with the transformed elements in reverse order, we apply the built-in **lists:reverse** function before returning the final result.
-
-Another useful list-transformation technique is filtering a list to retain or discard elements matching a specified predicate:
-
-{% highlight erlang %}
--module(filter).
--export([retain/2, discard/2]).
-
-filterwork(_, [], _, Accum) -> lists:reverse(Accum);
-filterwork(F, [First|Rest], Keep, Accum) ->
-  Test = F(First),
-  if
-    (Test and Keep) or (not Test and not Keep) ->
-       filterwork(F, Rest, Keep, [First | Accum]);
-    true -> filterwork(F, Rest, Keep, Accum)
-  end.
-
-retain(F, List) -> filterwork(F, List, true, []).
-
-discard(F, List) -> filterwork(F, List, false, []).
-{% endhighlight %}
-
-Examples of using these functions:
-
-<pre>
-18&gt; <b>filter:retain(fun(N) -&gt; N &gt; 4 end, [1, 2, 3, 4, 5, 6, 7, 8]).</b>
-[5,6,7,8]
-19&gt; <b>filter:discard(fun(N) -&gt; N &gt; 4 end, [1, 2, 3, 4, 5, 6, 7, 8]).</b>
-[1,2,3,4]
-</pre>
-
-Built-in versions
------------------
-
-It's interesting to build our own list-transformation functions, but in practice it's better to use the built-in implementations, which are **list::map**, **lists:takewhile**, and **lists:dropwhile**.
-
-List Comprehensions
-===================
-
-*List comprehensions* are a concise syntax for describing transformations of one or more lists.
-
-In the following examples, the variable **List** is defined as:
-
-    List = [1, 2, 3, 4, 5, 6, 7, 8].
-
-Example: double each element in a list:
-
-<pre>
-26&gt; <b>[N * 2 || N &lt;- List].</b>
-[2,4,6,8,10,12,14,16]
-</pre>
-
-Read this as "select elements *N* from *List*, and generate a new list by adding elements of the form *N*\*2".
-
-Example: get all elements greater than 4:
-
-<pre>
-27&gt; <b>[N || N &lt;- List, N &gt; 4].</b>
-[5,6,7,8]
-</pre>
-
-Here, we've specified an additional clause *N*\>4 to restrict which elements of *List* are used to generate the result list.
-
-Example: double all elements greater than 4:
-
-<pre>
-28&gt; <b>[N*2 || N &lt;- List, N &gt; 4].</b>
-[10,12,14,16]
-</pre>
-
-In this example, we both selected and transformed the input list.
+<!-- vim:set wrap: ­-->
+<!-- vim:set linebreak: -->
+<!-- vim:set nolist: -->

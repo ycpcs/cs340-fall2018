@@ -1,97 +1,73 @@
 ---
 layout: default
-title: "Lecture 13: Map, filter, reduce, and higher-order functions"
+title: "Lecture 13: Clojure Data Structures"
 ---
 
-# Intro
+# Clojure data structures
 
-The true "zen" of functional programming is being able to compose functions in arbitrary ways in order to process collections of data.
+Clojure has an extremely powerful set of built-in functional data structures, also called *collections*.
 
-The [map](http://clojuredocs.org/clojure.core/map), [mapv](http://clojuredocs.org/clojure.core/mapv), [filter](http://clojuredocs.org/clojure.core/filter), and [reduce](http://clojuredocs.org/clojure.core/reduce) functions are a powerful platform for using functions to process collections.
+They are "functional" because they do not offer any operations that mutate an existing data structure.  Instead, the operations which "modify" the data structure create a new instance of the data structure, based on the original instance.
 
-## Map (and mapv)
+## Operations
 
-The `map` and `mapv` functions apply an arbitrary function to each value in a collection, returning the results of each application as a sequence.
+There are many operations supported by all of the built-in data structures. Some examples:
 
-Example:
+`empty?`: determine whether a collection is empty.
 
-    => (defn add1 [x] (+ x 1))
-    
-    => (map add1 [1 2 3])
-    (2 3 4)
-    
-    => (mapv add1 [1 2 3])
-    [2 3 4]
+`count`: get the number of elements in a collection.
 
-The main difference between `map` and `mapv` is that `map` returns a "lazy sequence", while `mapv` returns a vector.  A lazy sequence is more or less what it sounds like: a sequence where the values are not computed until they are needed.
+`contains?`: check whether a collection contains a specified value.
 
-You should consider using `map` or `mapv` any time you need to apply a transformation to each member of a collection and access the results as a sequence.
+In general, Google and [clojuredocs.org](https://clojuredocs.org/) are your friends when you have questions about how to use the Clojure collection types.
 
-## Filter
+## Sequences
 
-The `filter` function applies a predicate (a function returning a boolean value) to each value in a collection, and returns a sequence containing just the values that matched the collection.
+Lists and vectors are the two main sequence data structures.
 
-Example:
+Lists are sequential access (O(n) to access the nth element).  Vectors are random access (*sort of* O(1) access to arbitrary elements.)
 
-    => (defn is-multiple-of-3? [x] (= (mod x 3) 0))
-    
-    => (filter is-multiple-of-3? [1 2 3 4 5 6 7 8 9 10])
-    (3 6 9)
+`first` and `rest` are the standard functions to recursively process a sequence, yielding the first element and a sequence with all but the first element, respectively.
 
-You should consider using the `filter` function any time you need to select a subset of values from a collection.
+The `nth` function retrieves the element of a sequence at the specified index.  Note that this is O(n) for lists.
 
-## Reduce
+The `conj` function prepends (lists) or appends (vectors) a new element onto an existing sequence.
 
-The `reduce` function does a *reduction* on a collection of values.  There are two forms:
+## Sets
 
-    (reduce f coll)
-    
-    (reduce f val coll)
+A set is an unordered collection of elements, with no duplicates allowed.  `contains?` can be expected to be a fast operation.
 
-The first form applies the function `f` to the first two values in `coll`, then applies `f` to that result and the third value in the collection, etc., until all values in the collection have been processed.
-
-Example:
-
-    => (reduce + [1 2 3 4 5])
-    15
-
-The second form is similar, but `f` is first applied to `val` and the first element of the collection, then `f` is applied to that result and the second element in the collection, etc.
-
-Example:
-
-    => (reduce + 0 [1 2 3 4 5])
-    15
-
-You should consider using `reduce` whenever you need to combine all of the values in a collection of data to produce a single result value.
-
-## Higher-order functions
-
-A *higher-order function* is a function which returns a function as a result.
-
-One important use of higher-order functions is to produce a "family" of related functions on demand.  In the `filter` example above, we defined an `is-multiple-of-3?` function.  However, we might want to have predicate functions for other multiples.  Here is a `make-is-multiple-of` function that can generate any such predicate:
+There is a literal syntax for sets:
 
 {% highlight clojure %}
-(defn make-is-multiple-of [n]
-  (fn [x]
-    (= (mod x n) 0)))
+; this is a set with three elements
+#{ :a, :b, :c }
 {% endhighlight %}
 
-Testing this function:
+Note that the commas are optional in the literal syntax.
 
-    => (filter (make-is-multiple-of 2) [1 2 3 4 5 6 7 8 9 10])
-    (2 4 6 8 10)
-    
-    => (filter (make-is-multiple-of 3) [1 2 3 4 5 6 7 8 9 10])
-    (3 6 9)
+Note that `first` and `rest` can be used with sets, but you will see the values in an unpredictable order.
 
-Note that in the example above, we didn't give a name to either of the functions returned by `make-is-multiple-of`.  However, if there is a particular variant that we want to refer to by name, we can give it one using `def`:
+You can use `conj` to add an element to a set.
 
-    => (def is-multiple-of-4? (make-is-multiple-of 4))
-    #'lab10.core/is-multiple-of-4?
-    
-    => (filter is-multiple-of-4? [1 2 3 4 5 6 7 8 9 10])
-    (4 8)
+You can use `disj` to remove an element from a set.
 
-(Note that my namespace for this example was called `lab10.core`.)
+## Maps
 
-Higher-order functions can be very powerful when used in conjunction with `map`, `filter`, and `reduce`.
+Clojure maps are similar to maps in Java, but they are functional.
+
+Literal syntax:
+
+{% highlight clojure %}
+{ :a 1, :b 2, :c 3 }
+{% endhighlight %}
+
+As with sets, the commas are optional.
+
+The `assoc` function updates a map by changing or adding a key/value association.
+
+The `dissoc` function updates a map by removing a key/value association.
+
+The `contains?` function can be used to check to see whether a map has a particular key.
+
+The `get` function retrieves the value associated with a specified key.

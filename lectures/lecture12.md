@@ -1,103 +1,114 @@
 ---
 layout: default
-title: "Lecture 12: Clojure functions"
+title: "Lecture 12: Why Clojure?"
 ---
 
-# Dealing with data
+# Clojure
 
-When writing functions in Clojure, the first step is extracting the data you need in order to do the required computation.
+[Clojure](http://clojure.org/) is a functional language that runs on the Java Virtual Machine.  It is a dialect of LISP.  It was designed and implemented by [Rich Hickey](https://twitter.com/richhickey).
 
-Here are two techniques that are helpful.
+Why learn Clojure?
 
-## The `let` form
+* Functional programming: no side-effects, no assignments, no mutable data
+* Concise syntax
+* Powerful functional data structures: lists, vectors, sets, maps
+* Anonymous functions (also called *closures*)
+* Higher-order functions (functions can return functions)
+* Powerful tools for *composing* functions: map, reduce, filter
+* Interoperability with Java (any Java class/method can be used from Clojure code)
+* Extremely rich literal syntax for structured data
+* Homoiconicity: code is data
+* Macros (code that generates or transforms code: a program add new syntactic forms to the language)
+* Interactive, incremental development (the REPL, read-eval-print loop)
 
-The `let` form can be used to define new variables.  This is extremely useful because it allows you to assign meaningful names to values used in the computation.
+Recommended reading: [Beating the Averages](http://www.paulgraham.com/avg.html) by [Paul Graham](http://www.paulgraham.com/): talks about Common LISP, but everything he says about LISP is true of Clojure.
 
-The `let` form is
+Data types:
 
-> (**let** [*var1* *val1* *var2* *val2* ...] *body*)
+* Integers, floating point numbers
+* Keywords (**:a**, **:hello**): often used as opaque identifiers
+* Strings (which are actually Java String objects)
+* Lists (**'(1 2 3)**, **'(:a :b :c)**)
+* Vectors (**[1 2 3]**, **[:a :b :c]**)
+* Sequences (an abstract generalization of lists, vectors, and any other data structure that represents a sequence of values: many built-in functions operate on sequences such as **conj**, **first**, **rest**)
+* Sets (**#{:a :b :c}**)
+* Maps (**{:a 1, :b 2, :c 3}**)
 
-Each value (*val1*, *val2*, etc.) is evaluated in order, and the results are assigned to the variables *var1*, *var2*, etc.  The result computed by the `let` form is the result of evaluating the *body* expression, which can refer to the variables.
+## Forms
 
-For example, let's say that we want to write a function to compute the geometric distance between two points, where each point is represented by a two-element vector.  E.g.:
+Because it is based on LISP, Clojure's syntax is very different from most programming languages.
 
-{% highlight clojure %}
-(geom-dist [0 0] [3 4])
-; => 5.0
-{% endhighlight %}
+There are only a small number of *syntactic forms* in Clojure.  All of them are a pair of parentheses with some stuff inside.
 
+The most important syntactic form is the function application:
 
-Here's one possible implementation:
+> (*function* *args...*)
 
-{% highlight clojure %}
-(defn geom-dist [p1 p2]
-  (Math/sqrt (+ (* (- (first p2) (first p1)) (- (first p2) (first p1)))
-                (* (- (second p2) (second p1)) (- (second p2) (second p1))))))
-{% endhighlight %}
+This form applies a function to zero or more arguments, and yields a value (the result returned from the function.)
 
-This is pretty ugly because there is a lot of redundancy.  Here's a better version using the `let` form:
-
-{% highlight clojure %}
-(defn geom-dist [p1 p2]
-  (let [x1 (first p1)
-        y1 (second p1)
-        x2 (first p2)
-        y2 (second p2)
-        xdiff (- x2 x1)
-        ydiff (- y2 y1)]
-    (Math/sqrt (+ (* xdiff xdiff) (* ydiff ydiff)))))
-{% endhighlight %}
-
-In addition to eliminating the redundancy, the variables make the code more readable by giving meaningful names to values used in the computation.
-
-## Destructuring
-
-*Destructuring* allows you to automatically extract data from a sequence or map argument.
-
-For example, the `geom-dist` function defined earlier accesses elements of two parameter vectors using the built-in `first` and `second` functions.  However, since both of the parameter vectors are expected to have exactly two members, we can destructure them into their members directly:
+Unlike most programming languages, Clojure does not have infix operators.  All computations, including arithmetic, are the result of function applications.  For example, the Clojure code to compute the sum of 2 and 3 is
 
 {% highlight clojure %}
-(defn geom-dist [[x1 y1] [x2 y2]]
-  (let [xdiff (- x2 x1)
-        ydiff (- y2 y1)]
-    (Math/sqrt (+ (* xdiff xdiff) (* ydiff ydiff)))))
+(+ 2 3)
 {% endhighlight %}
 
-This is even simpler than the previous version, and arguably more readable as well.
+## The REPL
 
-The `let` form also supports destructuring:
+Interacting with Clojure is often done through the Clojure REPL: the Read/Eval/Print Loop.  The idea is simple: you enter Clojure forms, and the REPL (and the Clojure compiler and runtime) evaluate them and print the result.
+
+There are lots of ways to use the REPL.  One of the easiest is the `lein repl` command.  Here is a transcript of me running it:
+
+    [dhovemey@nutt]$ lein repl
+    nREPL server started on port 39853 on host 127.0.0.1 - nrepl://127.0.0.1:39853
+    REPL-y 0.3.7, nREPL 0.2.12
+    Clojure 1.8.0
+    Java HotSpot(TM) 64-Bit Server VM 1.8.0_91-b14
+        Docs: (doc function-name-here)
+              (find-doc "part-of-name-here")
+      Source: (source function-name-here)
+     Javadoc: (javadoc java-object-or-class-here)
+        Exit: Control+D or (exit) or (quit)
+     Results: Stored in vars *1, *2, *3, an exception in *e
+    
+    user=> (+ 2 3)
+    5
+    user=> 
+
+At the `user=>` prompt you can type a Clojure form, and then see the result of the evaluation.
+
+## Functions
+
+The `defn` form defines a function:
+
+> (**defn** *name* [*params*] *body*)
+
+Example:
 
 {% highlight clojure %}
-(defn geom-dist [p1 p2]
-  (let [[x1 y1] p1
-        [x2 y2] p2
-        xdiff (- x2 x1)
-        ydiff (- y2 y1)]
-    (Math/sqrt (+ (* xdiff xdiff) (* ydiff ydiff)))))
+(defn sum [a b]
+  (+ a b))
 {% endhighlight %}
 
-This isn't quite as concise as the version above where the parameters are destructured directly, but it's still an improvement over making explicit calls to the `first` and `second` functions.
+Note that because Clojure is a dynamically-typed language, we don't need to declare data types for the parameters `a` and `b`.
 
-It is also possible to destructure maps.  For example:
+You can create functions in a REPL and call them:
 
-{% highlight clojure %}
-(def thing1 {:color "blue", :texture "fuzzy", :size 40})
+    [dhovemey@nutt]$ lein repl
+    nREPL server started on port 44580 on host 127.0.0.1 - nrepl://127.0.0.1:44580
+    REPL-y 0.3.7, nREPL 0.2.12
+    Clojure 1.8.0
+    Java HotSpot(TM) 64-Bit Server VM 1.8.0_91-b14
+        Docs: (doc function-name-here)
+              (find-doc "part-of-name-here")
+      Source: (source function-name-here)
+     Javadoc: (javadoc java-object-or-class-here)
+        Exit: Control+D or (exit) or (quit)
+     Results: Stored in vars *1, *2, *3, an exception in *e
+    
+    user=> (defn sum [a b] (+ a b))
+    #'user/sum
+    user=> (sum 2 3)
+    5
+    user=> 
 
-(def thing2 {:color "yellow", :texture "scaly", :size 120})
-
-(defn thingy-size [thingy]
-  (let [{sz :size} thingy]
-    (if (> sz 100)
-      "large"
-      "small")))
-
-(thingy-size thing1)
-;  => "small"
-
-(thingy-size thing2)
-;  => "large"
-{% endhighlight %}
-
-<!-- vim:set wrap: ­-->
-<!-- vim:set linebreak: -->
-<!-- vim:set nolist: -->
+This is a very nice way to develop programs in Clojure: create functions on the fly and test them interactively.

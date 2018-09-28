@@ -1,255 +1,97 @@
 ---
 layout: default
-title: "Lecture 15: Prolog"
+title: "Lecture 15: Map, filter, reduce, and higher-order functions"
 ---
 
-Prolog is a *declarative programming language* based on logical inference. It is the main example of a language in the *logic programming* paradigm.
+# Intro
 
-Download **tuProlog**, a Prolog interpreter written in Java:
+The true "zen" of functional programming is being able to compose functions in arbitrary ways in order to process collections of data.
 
-> [tuProlog.zip](../resources/tuProlog.zip)
+The [map](http://clojuredocs.org/clojure.core/map), [mapv](http://clojuredocs.org/clojure.core/mapv), [filter](http://clojuredocs.org/clojure.core/filter), and [reduce](http://clojuredocs.org/clojure.core/reduce) functions are a powerful platform for using functions to process collections.
 
-Extract the contents of the zip file, and double-click the file **bin/2p.jar** to start the Prolog interpreter. Or, cd to the **bin** directory and run the command
+## Map (and mapv)
 
-    java -jar 2p.jar
-
-in a shell window.
-
-Atoms
-=====
-
-Symbols:
-
-{% highlight prolog %}
-homer
-marge
-bart
-lisa
-maggie
-{% endhighlight %}
-
-Note: names of symbols *must* be written in lower-case letters.
-
-Numbers:
-
-> 1 2 3
-
-Relations
-=========
-
-A relation is a table of facts. Here is a **father** relation
-
-> <table>
-> <col width="13%" />
-> <col width="15%" />
-> <tbody>
-> <tr class="odd">
-> <td align="left">homer</td>
-> <td align="left">bart</td>
-> </tr>
-> <tr class="even">
-> <td align="left">homer</td>
-> <td align="left">lisa</td>
-> </tr>
-> <tr class="odd">
-> <td align="left">homer</td>
-> <td align="left">maggie</td>
-> </tr>
-> <tr class="even">
-> <td align="left">grandpa</td>
-> <td align="left">homer</td>
-> </tr>
-> <tr class="odd">
-> <td align="left">grandpa</td>
-> <td align="left">herb</td>
-> </tr>
-> </tbody>
-> </table>
-
-The first item in each tuple of the relation represents a person who is a father. The second item is a person who is a child of that father.
-
-Relations can thus be formed as a collection of explicit facts, called *ground truths*. Each fact is a tuple belonging to the relation. In Prolog, we specify ground truths as
-
-> relation ( *list of atoms* )
-
-Here are some ground truths:
-
-{% highlight prolog %}
-father(homer, bart).
-father(homer, lisa).
-father(homer, maggie).
-father(grandpa, homer).
-father(grandpa, herb).
-
-mother(marge, bart).
-mother(marge, lisa).
-mother(marge, maggie).
-mother(grandma, homer).
-{% endhighlight %}
-
-Inference rules
-===============
-
-An inference rule allows new facts to be inferred from existing facts.
-
-General form:
-
-> *conclusion* :- *hypothesis*.
-
-Facts and inference rules may use *variables*. A variable is a name, in upper-case letters, which stands for some possible member of a tuple in a relation.
-
-Example: X is Y's paternal grandfather if there exists Z such that X is Z's father, and Z is Y's father:
-
-{% highlight prolog %}
-paternal_grandfather(X, Y) :- father(X, Z), father(Z, Y).
-{% endhighlight %}
-
-Note that X, Y, and Z are all variables, and the comma means "and" in the sense of a logical conjunction.
-
-We can describe a paternal grandmother in a similar way:
-
-{% highlight prolog %}
-paternal_grandmother(X, Y) :- mother(X, Z), father(Z, Y).
-{% endhighlight %}
-
-Here is a possible set of inference rules:
-
-{% highlight prolog %}
-samefather(X, Y) :- father(Q, X), father(Q, Y).
-samemother(X, Y) :- mother(Q, X), mother(Q, Y).
-
-siblings(X,Y) :- (samemother(X,Y); samefather(X,Y)), X \= Y.
-
-paternal_grandfather(X, Y) :- father(X, Q), father(Q, Y).
-paternal_grandmother(X, Y) :- mother(X, Z), father(Z, Y).
-{% endhighlight %}
-
-Note the definition of the inference rule defining the **siblings** relation:
-
-{% highlight prolog %}
-siblings(X,Y) :- (samemother(X,Y); samefather(X,Y)), X \= Y.
-{% endhighlight %}
-
-The semicolon means "or" in the sense of logical disjunction. That is because two people are siblings if *either* they share the same father or mother.  Also, the **\\=** operator means "not equals", preventing any person from being considered to be his or her own sibling.  (Prolog allows the same value to be bound to multiple variables.)
-
-Queries
-=======
-
-We can type in a potential fact, and based on the ground truths and the available inference rules, Prolog will attempt to find a derivation that proves that the fact is true.
+The `map` and `mapv` functions apply an arbitrary function to each value in a collection, returning the results of each application as a sequence.
 
 Example:
 
-{% highlight prolog %}
-father(homer, bart).
+    => (defn add1 [x] (+ x 1))
+    
+    => (map add1 [1 2 3])
+    (2 3 4)
+    
+    => (mapv add1 [1 2 3])
+    [2 3 4]
+
+The main difference between `map` and `mapv` is that `map` returns a "lazy sequence", while `mapv` returns a vector.  A lazy sequence is more or less what it sounds like: a sequence where the values are not computed until they are needed.
+
+You should consider using `map` or `mapv` any time you need to apply a transformation to each member of a collection and access the results as a sequence.
+
+## Filter
+
+The `filter` function applies a predicate (a function returning a boolean value) to each value in a collection, and returns a sequence containing just the values that matched the collection.
+
+Example:
+
+    => (defn is-multiple-of-3? [x] (= (mod x 3) 0))
+    
+    => (filter is-multiple-of-3? [1 2 3 4 5 6 7 8 9 10])
+    (3 6 9)
+
+You should consider using the `filter` function any time you need to select a subset of values from a collection.
+
+## Reduce
+
+The `reduce` function does a *reduction* on a collection of values.  There are two forms:
+
+    (reduce f coll)
+    
+    (reduce f val coll)
+
+The first form applies the function `f` to the first two values in `coll`, then applies `f` to that result and the third value in the collection, etc., until all values in the collection have been processed.
+
+Example:
+
+    => (reduce + [1 2 3 4 5])
+    15
+
+The second form is similar, but `f` is first applied to `val` and the first element of the collection, then `f` is applied to that result and the second element in the collection, etc.
+
+Example:
+
+    => (reduce + 0 [1 2 3 4 5])
+    15
+
+You should consider using `reduce` whenever you need to combine all of the values in a collection of data to produce a single result value.
+
+## Higher-order functions
+
+A *higher-order function* is a function which returns a function as a result.
+
+One important use of higher-order functions is to produce a "family" of related functions on demand.  In the `filter` example above, we defined an `is-multiple-of-3?` function.  However, we might want to have predicate functions for other multiples.  Here is a `make-is-multiple-of` function that can generate any such predicate:
+
+{% highlight clojure %}
+(defn make-is-multiple-of [n]
+  (fn [x]
+    (= (mod x n) 0)))
 {% endhighlight %}
 
-This query is true because a ground truth matching the query exists.
+Testing this function:
 
-The query
+    => (filter (make-is-multiple-of 2) [1 2 3 4 5 6 7 8 9 10])
+    (2 4 6 8 10)
+    
+    => (filter (make-is-multiple-of 3) [1 2 3 4 5 6 7 8 9 10])
+    (3 6 9)
 
-{% highlight prolog %}
-father(marge, bart).
-{% endhighlight %}
+Note that in the example above, we didn't give a name to either of the functions returned by `make-is-multiple-of`.  However, if there is a particular variant that we want to refer to by name, we can give it one using `def`:
 
-is false because this fact cannot be derived using the available ground truths and inference rules.
+    => (def is-multiple-of-4? (make-is-multiple-of 4))
+    #'lab10.core/is-multiple-of-4?
+    
+    => (filter is-multiple-of-4? [1 2 3 4 5 6 7 8 9 10])
+    (4 8)
 
-In general, answering a query requires constructing a chain of inferences. For example, the query
+(Note that my namespace for this example was called `lab10.core`.)
 
-{% highlight prolog %}
-siblings(bart, lisa).
-{% endhighlight %}
-
-is true because the facts
-
-{% highlight prolog %}
-mother(marge, bart).
-mother(marge, lisa).
-{% endhighlight %}
-
-are ground truths, enabling the query
-
-{% highlight prolog %}
-samemother(bart, lisa).
-{% endhighlight %}
-
-to be true if **marge** is substituted for the variable **Q** in the rule defining the **samemother** relation. This, in turn, is sufficient to deduce that
-
-{% highlight prolog %}
-siblings(bart, lisa).
-{% endhighlight %}
-
-is true.
-
-A more interesting query
-
-{% highlight prolog %}
-siblings(homer, herb).
-{% endhighlight %}
-
-is true because
-
-{% highlight prolog %}
-father(grandpa, homer).
-father(grandpa, herb).
-{% endhighlight %}
-
-implies
-
-{% highlight prolog %}
-samefather(homer, herb).
-{% endhighlight %}
-
-which is sufficient to deduce that
-
-{% highlight prolog %}
-siblings(homer, herb).
-{% endhighlight %}
-
-is true. Note that the query
-
-{% highlight prolog %}
-samemother(homer, herb).
-{% endhighlight %}
-
-is false, because there is no derivation for this fact.
-
-Queries with unknowns
----------------------
-
-The real power of Prolog can be seen when a query contains one or more variables, which represent unknowns: for each variable, Prolog will attempt to find a value which can be substituted for the variable in order to make the query true.
-
-For example, the query:
-
-{% highlight prolog %}
-paternal_grandfather(X, bart).
-{% endhighlight %}
-
-yields the answer
-
-    yes.
-    X / grandpa
-    Solution: paternal_grandfather(grandpa,bart)
-
-showing that **grandpa** can be substituted for the variable **X** in order to make the query true.
-
-Note that a query with variables could lead to multiple solutions.  For example, the query
-
-{% highlight prolog %}
-siblings(X, bart).
-{% endhighlight %}
-
-yields two solutions, one where **lisa** is substituted for **X**, and one where **maggie** is substituted for **X**.
-
-Declarative programming
-=======================
-
-Prolog is a declarative programming language because we never specify *how* we want a computation to be performed. We simply use ground truths and inference rules to describe a problem, and allow the inference algorithm to deduce a solution.
-
-Declarative programming is nice because it allows us to specify a problem at a higher level.
-
-Other declarative programming languages:
-
--   [Makefiles](http://en.wikipedia.org/wiki/Makefile), a language for directing the compilation of software
--   [SQL](http://en.wikipedia.org/wiki/Sql), the database query language
-
-The language for Makefiles is especially interesting because, like Prolog, it is a logic programming language.
+Higher-order functions can be very powerful when used in conjunction with `map`, `filter`, and `reduce`.
