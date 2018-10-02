@@ -65,6 +65,8 @@ Value evaluate(Node expr) {
 }
 {% endhighlight %}
 
+There are some method calls that aren't fully explained in this code, but their meaning should be reasonably apparent from context.  For example, `expr.getLeftChild()` would get the left (first) child of a `expr`.
+
 ## Tradeoffs of recursive evaluation
 
 Recursive evaluation has positive and negative features.
