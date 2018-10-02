@@ -31,7 +31,7 @@ courseInfo.classPeriods = [
 	},
 	{
 		topic: new Topic("Lecture 8: Decidability and the Halting Problem", "lectures/lecture08.html"),
-		lab: new NumberedLabNoFile(8, "Exam Review")
+		lab: new Lab("No lab", "")
 	},
 	{
 		topic: new Topic("Lecture 9: Decidability of Regular Languages", "lectures/lecture09.html"),
@@ -42,7 +42,7 @@ courseInfo.classPeriods = [
 	},
 	{
 		topic: new Topic("Lecture 10: Interpreters", "lectures/lecture10.html"),
-		lab: new NumberedLabNoFile("Lab 10: Calculator implementation")
+		lab: new NumberedLabNoFile(8, "Calculator implementation")
 	},
 ];
 
