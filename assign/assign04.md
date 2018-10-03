@@ -3,8 +3,6 @@ layout: default
 title: "Assignment 4: Calculator Language Interpreter"
 ---
 
-*Note: this assignment description is incomplete and will be updated*
-
 **Due**: Friday, Oct 12th by 11:59 PM
 
 Getting Started
@@ -44,6 +42,8 @@ Here are the grammar productions:
 > *PrimaryExpression* &rarr; **identifier**
 >
 > *PrimaryExpression* &rarr; **identifier** **(** *OptArgumentList* **)**
+>
+> *PrimaryExpression* &rarr; **(** *Expression* **)**
 >
 > *OptArgumentList* &rarr; *ArgumentList*
 >
@@ -337,6 +337,8 @@ To evaluate a function call:
 3. Create a new **Environment** with the current environment (`env`) as its parent
 4. Use the **put** method to bind (assign) each argument value to its corresponding parameter
 5. Return the result of recursively evaluating the called function's body in the new environment
+
+See [Lab 9](../labs/lab09.html) for more hints related to functions and function calls.
 
 # Submitting
 

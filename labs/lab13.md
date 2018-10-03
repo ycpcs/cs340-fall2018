@@ -1,119 +1,54 @@
 ---
 layout: default
-title: "Lab 13: Recursion in Clojure"
+title: "Lab 12: Tic Tac Toe"
 ---
 
-Getting Started
-===============
+# Getting started
 
-Start a new Clojure project in Eclipse using **New &rarr; Project &rarr; Clojure &rarr; Clojure Project**.  Name the new project **lab13**.
+Download [cs340-lab12.zip](cs340-lab12.zip).
 
-Open the file **src/lab13/core.clj**.  Create your functions in this file.  When you are ready to test your functions, start a REPL by right-clicking in the editor and choosing **Clojure &rarr; Load file in REPL**.  When you modify your code, do the same thing to reload your definitions in the REPL.
+Unzip it in your `CS340` directory, e.g.
 
-If you would prefer to use Light Table, or edit your code in a text editor and run the Clojure REPL from the command line, feel free.
+    cd CS340
+    unzip cs340-lab12.zip
 
-Your Task
-=========
+Open `src/cs340_lab12/core.clj` in an editor (e.g., Kate) or import it into Eclipse as follows:
 
-There are 4 tasks.
+1. **File** &rarr; **New** &rarr; **Project...** &rarr; **General** &rarr; **Project**
+2. Enter `cs340-lab12` as the project name
+3. Uncheck "Use default location", click **Browse**, then choose the `cs340-lab12` directory
+4. Click **Finish**
 
-Use recursion for each task.  Make sure your solution to the fourth task uses tail recursion.
+You should see a project called **cs340-lab12** in your workspace.  You can now open `src/cs340_lab12/core.clj`.  (Note that these steps will only work if you have Counterclockwise installed.)
 
-### First task
+If you do not see **Leiningen dependencies** in your **cs340-lab12** project, right-click on the project and choose **Configure** &rarr; **Convert to Leiningen project**.  If the project is not configured as a Leiningen project, you won't be able to start a REPL from within Eclipse.
 
-Write a Clojure function called **last-element-of** which takes a non-empty list and returns the last element.
+# Your task
 
-Hints:
+Your task is to implement each of the following functions:
 
--   the **first** returns the first element in a list
--   the **rest** function returns a list containing every element of a list except the first one
--   the **empty?** function returns a true value if called with an empty list as its argument, false otherwise
+* `check-x`
+* `check-o`
+* `make-check-fn`
+* `get-row`
+* `get-col`
 
-Example:
+Each function has a detailed comment indicating the parameter(s) the function takes and what value should be returned, along with example invocations and expected results.
 
-{% highlight clojure %}
-user=> (last-element-of '(:a :b :c))
-:c
-{% endhighlight %}
+Run the `lein test` command to run the unit tests.  You can see the code for the unit tests in the file `test/cs340_lab12/core_test.clj`.
 
-### Second task
+## Hints
 
-Write a Clojure function called **append-to-list**. It should take two parameters:
+You may find the `mapv` function to be useful in implementing `get-col`.
 
-1.  a value
-2.  a list
+`make-check-fn` is a higher-order function (a function which returns a function).  Make sure you understand what the examples shown in the comment are doing.
 
-It should return a new list containing all of the values in the original list, with the value appended as a new last element.
+If you get all of the functions working, examine the `is-win?` function.  See if you can improve it.
 
-Hints:
+<!--
+# Solution
 
-The `conj` function, given a list and a value as arguments, returns a new list containing the value as the first value and the elements of the original list as the remaining values.  (In other words, it prepends a value onto the original list.)
+When you are done, you can compare your solution to mine:
 
-Example:
-
-{% highlight clojure %}
-user=> (append-to-list :d '(:a :b :c))
-(:a :b :c :d)
-{% endhighlight %}
-
-### Third task
-
-Write a function called **reverse-list** which reverses the elements of a list given as its parameter.
-
-Hint: Use your **append-to-list** function.
-
-Example:
-
-{% highlight clojure %}
-user=> (reverse-list '(:a :b :c :d))
-(:d :c :b :a)
-{% endhighlight %}
-
-### Fourth task
-
-Find out how long a list needs to be for your **reverse-list** function to fail because it requires a new activation record for each recursive call.
-
-You can use the following **make-int-list** function to generate a list with a specified number of elements:
-
-{% highlight clojure %}
-(defn make-int-list-work [min n accum]
-  (if (> min n)
-      accum
-      (recur min (- n 1) (conj accum n))))
-
-; Make a list containing all integers from 1 to n.
-(defn make-int-list [n]
-  (make-int-list-work 1 n '()))
-{% endhighlight %}
-
-Here is a more compact version of **make-int-list** that uses the **loop** construct:
-
-{% highlight clojure %}
-(defn make-int-list [nval]
-  (loop [min 1
-         n nval
-         accum '()]
-    (if (> min n)
-      accum
-      (recur min (- n 1) (conj accum n)))))
-{% endhighlight %}
-
-For example, the call
-
-{% highlight clojure %}
-(make-int-list 100)
-{% endhighlight %}
-
-will generate a list of all integers from 1 to 100. So, you just need to find a value *N* such that
-
-{% highlight clojure %}
-(reverse-list (make-int-list N))
-{% endhighlight %}
-
-fails.
-
-Once you have determined a list size *N* that will make the **reverse-list** function fail:
-
-Write a "tail-recursive" function called **reverse-tail-rec** to reverse the elements of a list.  To be tail-recursive, it should use `recur` instead of a direct recursive call.  You may use a helper function, or the `loop`/`recur` form.  Show that it succeeds in reversing the list that caused your non-tail-recursive list reversal function to fail.
-
-Interestingly, reversing a list is *easier* to do using tail recursion.
+> [cs340-lab12-solution.zip](cs340-lab12-solution.zip)
+-->

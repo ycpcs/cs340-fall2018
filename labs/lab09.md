@@ -1,25 +1,96 @@
 ---
 layout: default
-title: "Lab 9: Clojure Warm-up"
+title: "Lab 9: Calculator functions"
 ---
 
-[4clojure](http://www.4clojure.com) is a website with lots of online practice problems for learning Clojure.
+# Your task
 
-Please create an account using the "Register" link.
+Note that you do not need to get a sign-off on this lab.
 
-Here are a few beginning problems you can try:
+Continue working on [Assignment 4](assign/assign04.html).
 
-* [Intro to Strings](http://www.4clojure.com/problem/3)
-* [Intro to Lists](http://www.4clojure.com/problem/4)
-* [Lists: conj](http://www.4clojure.com/problem/5)
-* [Intro to Vectors](http://www.4clojure.com/problem/6)
-* [Vectors: conj](http://www.4clojure.com/problem/7)
-* [Intro to Sets](http://www.4clojure.com/problem/8)
-* [Intro to Maps](http://www.4clojure.com/problem/10)
-* [Maps: conj](http://www.4clojure.com/problem/11)
-* [Intro to Sequences](http://www.4clojure.com/problem/12)
-* [Sequences: rest](http://www.4clojure.com/problem/13)
-* [Intro to Functions](http://www.4clojure.com/problem/14)
-* [Double Down](http://www.4clojure.com/problem/15)
+Your goal should be to implement functions and function calls.  Note that you will need to have variable assignment working, since the only way to call a function is to name the variable whose value is the function.
 
-To get credit for this lab, show me your solutions to at least 8 of the problems.
+## Accessing parameter(s) and argument(s)
+
+To simplify the task, you can start by assuming that each function will have a single parameter.  (Eventually, you should generalize your code so that any number of parameters/arguments are supported.)  When creating a function, you will need to think about how to access the identifier naming the first parameter.  When a function is called, you will need to think about how to access the expression which computes the first argument value.
+
+Here's an example of running the Calculator and defining a function:
+
+<pre>
+> <b>add1 = fn(x) { x + 1 }</b>
+ASSIGN
++--PRIMARY
+|  +--IDENTIFIER("add1")
++--PRIMARY
+   +--FN_KEYWORD("fn")
+   +--LPAREN("(")
+   +--OPT_PARAMETER_LIST
+   |  +--PARAMETER_LIST
+   |     +--IDENTIFIER("x")
+   +--RPAREN(")")
+   +--LBRACE("{")
+   +--PLUS
+   |  +--PRIMARY
+   |  |  +--IDENTIFIER("x")
+   |  +--PRIMARY
+   |     +--INT_LITERAL("1")
+   +--RBRACE("}")
+=> &lt;&lt;function&gt;&gt;
+</pre>
+
+Notice that the third child of the `PRIMARY` node representing the function is an `OPT_PARAMETER_LIST`.  Its first child is a `PARAMETER_LIST`, and in turn, its first child is an `IDENTIFIER` naming the function's parameter.  You could retrieve the parameter name as follows:
+
+{% highlight java %}
+Node fnPrimary = ...
+Node optParamList = fnPrimary.getChildren().get(2);
+Node paramList = optParamList.getChildren().get(0);
+Node firstParam = paramList.getChildren().get(0);
+{% endhighlight %}
+
+This code assumes that the variable <code>fnPrimary</code> refers to the `PRIMARY` node representing the function.
+
+Here's an example of calling this function:
+
+<pre>
+> add1(4)
+PRIMARY
++--IDENTIFIER("add1")
++--LPAREN("(")
++--OPT_ARGUMENT_LIST
+|  +--ARGUMENT_LIST
+|     +--PRIMARY
+|        +--INT_LITERAL("4")
++--RPAREN(")")
+=> 5
+</pre>
+
+The structure of a function call is quite similar to a function, except that instead of an `OPT_PARAMETER_LIST`, there is an `OPT_ARGUMENT_LIST`.  So, to get the expression computing the value of the first argument, you could use code like:
+
+{% highlight java %}
+Node funcCall = ...
+Node optArgList = funcCall.getChildren().get(2);
+Node argList = optArgList.getChildren().get(0);
+Node firstArg = argList.getChildren().get(0);
+{% endhighlight %}
+
+## Creating a `FunctionValue`
+
+The result of evaluating a function expression should be a `FunctionValue`.
+
+A `FunctionValue` is
+
+* A `List` of parameter names
+* A body expression
+
+## Calling a function
+
+To call a function:
+
+1. A new `Environment` should be created whose parent environment is the current environment: this is the *function call environment*
+2. Each argument expression should be evaluated and assigned to the corresponding function parameter
+3. The function's body expression should be evaluated in the function call environment
+
+<!-- vim:set wrap: ­-->
+<!-- vim:set linebreak: -->
+<!-- vim:set nolist: -->
