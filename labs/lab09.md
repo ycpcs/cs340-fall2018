@@ -7,7 +7,7 @@ title: "Lab 9: Calculator functions"
 
 Note that you do not need to get a sign-off on this lab.
 
-Continue working on [Assignment 4](assign/assign04.html).
+Continue working on [Assignment 4](../assign/assign04.html).
 
 Your goal should be to implement functions and function calls.  Note that you will need to have variable assignment working, since the only way to call a function is to name the variable whose value is the function.
 
