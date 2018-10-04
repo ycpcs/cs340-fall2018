@@ -51,7 +51,7 @@ Here are the grammar productions:
 >
 > *ArgumentList* &rarr; *Expression*
 >
-> *ArgumentList* &rarr; *Expression* **,** *ExpressionList*
+> *ArgumentList* &rarr; *Expression* **,** *ArgumentList*
 >
 > *PrimaryExpression* &rarr; *Expression*
 >
