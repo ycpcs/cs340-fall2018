@@ -76,7 +76,7 @@ courseInfo.classPeriods = [
 	{
 		topic: new Topic("Lecture 17: Clojure macros", "lectures/lecture17.html"),
 		lab: new NumberedLabNoFile(15, "Clojure macros"),
-		reading: "<i>CBT</i>, CBT, Chapters 7-8"
+		reading: "<i>CBT</i>, Chapters 7-8"
 	},
 	{
 		topic: new Topic("Clojure review 1", ""),
