@@ -1,6 +1,6 @@
 ---
 layout: default
-title: "Lab 9: Clojure Warm-up"
+title: "Lab 10: Clojure Warm-up"
 ---
 
 [4clojure](http://www.4clojure.com) is a website with lots of online practice problems for learning Clojure.

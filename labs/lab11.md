@@ -1,6 +1,6 @@
 ---
 layout: default
-title: "Lab 10: Can I take your order?"
+title: "Lab 11: Can I take your order?"
 ---
 
 # Your task
@@ -86,7 +86,7 @@ When you get this working, show me what you did.
 
 When you are done, you can compare your solution to mine:
 
-> [lab10-solution.clj](lab10-solution.clj)
+> [lab11-solution.clj](lab11-solution.clj)
 -->
 
 <!-- vim:set wrap: ­-->

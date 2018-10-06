@@ -48,6 +48,24 @@ courseInfo.classPeriods = [
 		topic: new Topic("Lecture 11: Interpretation of functions and function calls", "lectures/lecture11.html"),
 		lab: new NumberedLabNoFile(9, "Calculator functions")
 	},
+	{
+		topic: new Topic("Lecture 12: Why Clojure?", "lectures/lecture12.html"),
+		lab: new NumberedLabNoFile(10, "Clojure warm up")
+	},
+	{
+		topic: new Topic("Lecture 13: Clojure data structures", "lectures/lecture13.html"),
+		lab: new NumberedLabNoFile(11, "Can I take you order?")
+	},
+	{
+		topic: new Topic("Lecture 14: Clojure functions", "lectures/lecture14.html"),
+		lab: new NumberedLabNoFile(12, "Clojure functions")
+	},
+/*
+	{
+		topic: new Topic("Lecture 13: Clojure Data Structures", "lectures/lecture13.html"),
+		lab: new NumberedLabNoFile(11, "Can I take you order?")
+	},
+*/
 ];
 
 // The following is for the college-scheduled final exam.
