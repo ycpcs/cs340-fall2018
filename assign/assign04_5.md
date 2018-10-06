@@ -1,19 +1,19 @@
 ---
 layout: default
-title: "Assignment 4: Clojure MOOC"
+title: "Assignment 4.5: Clojure MOOC"
 ---
 
 **Due**:
 
-* Milestone 1 is due Friday, Oct 13th
-* Milestone 2 is due Wednesday, Oct 25th
-* Milestone 3 is due Wednesday, Nov 1st
+* Milestone 1 is due Wednesday, Oct 17th
+* Milestone 2 is due Wednesday, Oct 24th
+* Milestone 3 is due Wednesday, Oct 31st
 
 # Learning Clojure
 
 We will be using [Clojure](http://clojure.org/) for a series of programming assignments.
 
-The [Functional programming with Clojure](http://mooc.fi/courses/2014/clojure/index.html) MOOC at the University of Helsinki is a truly excellent way to learn Clojure.  In this assignment you will work on the first eight chapters.  There are three Milestones:
+The [Functional programming with Clojure](https://moocfi.github.io/courses/2014/clojure/) MOOC at the University of Helsinki is a truly excellent way to learn Clojure.  In this assignment you will work on the first eight chapters.  There are three Milestones:
 
 * Milestone 1: Complete **Basic tools**, **Training day**, and **I am a horse in the land of booleans**
 * Milestone 2: Complete **Structured data** and **P-P-P-Pokerface** (look over **Style** as well, although there are no problems in that chapter)
