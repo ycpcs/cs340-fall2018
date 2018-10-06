@@ -1,36 +1,63 @@
 ---
 layout: default
-title: "Lab 14: Recursive List Processing in Prolog"
+title: "Lab 15: Clojure macros"
 ---
 
 # Your task
 
-Define Prolog inference rules called **listSum** such that a query of the form
+Create Clojure macros are described below.
 
-<pre>
-<b>listSum</b>(<i>List</i>, <i>Sum</i>).
-</pre>
+## `applyn`
 
-asserts that the sum of the elements of *List* is *Sum*.  For example, the query
+This macro should take three arguments: a function, a value, and a *n* (an integer count).  It should return a form which will apply the function to *n* copies of the value.
 
-{% highlight prolog %}
-listSum([8, 0, 18, 15, 5], X).
+Example use:
+
+    => (applyn str "HA" 5)
+    HAHAHAHAHA
+    => (defn splot [] (println "Splot!") 3)
+    #'cs340-lab15.core/splot
+    => (applyn + (splot) 3)
+    Splot!
+    Splot!
+    Splot!
+    9
+
+Note that the way that `applyn` works is subtly different than how a function works.  If `applyn` were a function, each argument would be evaluated exactly once.  As you can see from the second example above, the *val* argument is evaluated *n* times.
+
+Suggestion: you can use the built-in `repeat` function to generate a sequence with multiple copies of a specified value.  E.g.,
+
+{% highlight clojure %}
+(repeat n val)
 {% endhighlight %}
 
-should result in the query succeeding with the binding of 46 to *X*.
+produces a sequence with *n* copies of *val*.  Also note that using `conj` to add an element to a sequence returned by `repeat` does a prepend, as though the sequence were a list.
 
-## Hints
+## `unless`
 
-Think about an appropriate base case, and define an inference rule to handle the base case.
+This macro is similar to the **if** special form.  Its syntax is
 
-You can use the **is** keyword to make an assertion about numeric equality, e.g., the query
+> (**unless** *cond* *if-false* *if-true*)
 
-{% highlight prolog %}
-X is 4 + 5.
-{% endhighlight %}
+First, *cond* should be evaluated.  If *cond* yields a false value, *if-false* should be evaluated and returned.  Otherwise, *if-true* should be evaluated and returned.
 
-succeeds with the binding of 9 to *X*.
+Note that only one of *if-false* and *if-true* should be evaluated, not both.
 
-You can use the [*First*\|*Rest*] syntax to break up a non-empty list into a first element and remaining elements list.
+Hint: generate an **if** form as a result of the macro.
 
-Note: Prolog is sensitive to the order in which the conjuncts in the hypothesis appear.  If your rule doesn't work, try reordering the clauses in the hypothesis of the recursive rule.
+Example use:
+
+    => (unless (< 5 4) "yip" "yap")
+    yip
+    => (unless (< 4 5) "yip" "yap")
+    yap
+    => (defn ned [] (println "I'm Ned!") 44)
+    #'cs340-lab15.core/ned
+    => (defn ted [] (println "I'm Ted!") 55)
+    #'cs340-lab15.core/ted
+    => (unless (< 5 4) (ned) (ted))
+    I'm Ned!
+    44
+    => (unless (< 4 5) (ned) (ted))
+    I'm Ted!
+    55

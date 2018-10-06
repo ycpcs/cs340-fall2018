@@ -219,3 +219,8 @@ dt {
 	background: #9900cc;
 	color: white;
 }
+
+/* Don't add extra margins for highlight figures */
+figure.highlight {
+	margin: 0;
+}

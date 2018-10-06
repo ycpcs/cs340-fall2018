@@ -1,14 +1,14 @@
 ---
 layout: default
-title: "Lab 13: Recursion in Clojure"
+title: "Lab 14: Recursion in Clojure"
 ---
 
 Getting Started
 ===============
 
-Start a new Clojure project in Eclipse using **New &rarr; Project &rarr; Clojure &rarr; Clojure Project**.  Name the new project **lab13**.
+Start a new Clojure project in Eclipse using **New &rarr; Project &rarr; Clojure &rarr; Clojure Project**.  Name the new project **lab14**.
 
-Open the file **src/lab13/core.clj**.  Create your functions in this file.  When you are ready to test your functions, start a REPL by right-clicking in the editor and choosing **Clojure &rarr; Load file in REPL**.  When you modify your code, do the same thing to reload your definitions in the REPL.
+Open the file **src/lab14/core.clj**.  Create your functions in this file.  When you are ready to test your functions, start a REPL by right-clicking in the editor and choosing **Clojure &rarr; Load file in REPL**.  When you modify your code, do the same thing to reload your definitions in the REPL.
 
 If you would prefer to use Light Table, or edit your code in a text editor and run the Clojure REPL from the command line, feel free.
 

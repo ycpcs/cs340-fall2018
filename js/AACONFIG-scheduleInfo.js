@@ -58,14 +58,31 @@ courseInfo.classPeriods = [
 	},
 	{
 		topic: new Topic("Lecture 14: Clojure functions", "lectures/lecture14.html"),
-		lab: new NumberedLabNoFile(12, "Clojure functions")
+		lab: new NumberedLab(12, "Clojure functions", "cs340-lab12.zip")
 	},
-/*
 	{
-		topic: new Topic("Lecture 13: Clojure Data Structures", "lectures/lecture13.html"),
-		lab: new NumberedLabNoFile(11, "Can I take you order?")
+		topic: new Topic("Lecture 15: Map, filter, reduce, and higher-order functions", "lectures/lecture15.html"),
+		lab: new NumberedLab(13, "Tic Tac Toe", "cs340-lab13.zip")
 	},
-*/
+	{
+		topic: new Topic("Lecture 16: Recursion and iteration", "lectures/lecture16.html"),
+		lab: new NumberedLabNoFile(14, "Recursion in Clojure")
+	},
+	{
+		topic: new Topic("Lecture 17: Clojure macros", "lectures/lecture17.html"),
+		lab: new NumberedLabNoFile(15, "Clojure macros")
+	},
+	{
+		topic: new Topic("Clojure review 1", ""),
+		lab: new NumberedLab(16, "Clojure review 1", "cs340-lab16.zip")
+	},
+	{
+		topic: new Topic("Clojure review 2", ""),
+		lab: new NumberedLab(17, "Clojure review 2", "cs340-lab17.zip")
+	},
+	{
+		topic: new Topic("** Exam 2", "")
+	},
 ];
 
 // The following is for the college-scheduled final exam.

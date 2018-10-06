@@ -1,63 +1,30 @@
 ---
 layout: default
-title: "Lab 15: Clojure macros"
+title: "Lab 16: Clojure Review 1"
 ---
+
+# Getting started
+
+Download [cs340-lab16.zip](cs340-lab16.zip).  It is an Eclipse project, so you can import it into Eclipse using **File&rarr;Import...&rarr;General&rarr;Existing projects into workspace&rarr;Archive file**.  You should see a project called **clojure-review** in your Eclipse workspace.
 
 # Your task
 
-Create Clojure macros are described below.
+This is a Clojure review lab.  It is intended to prepare you for Exam 2.
 
-## `applyn`
+Complete the **make-pair**, **double-apply**, **double-applicator**, **my-flatten**, and **conj-all** functions in `src/clojure_review/core.clj`.  Each function is described by a detailed comment with example inputs and expected results.
 
-This macro should take three arguments: a function, a value, and a *n* (an integer count).  It should return a form which will apply the function to *n* copies of the value.
+You can test your functions by running the command `lein test` in a terminal window from the root of the project.
 
-Example use:
+You can also start a Clojure REPL (in Eclipse) by right-clicking in `core.clj` and choosing **Clojure&rarr;Load file in REPL**.  This is very useful for testing your functions interactively.
 
-    => (applyn str "HA" 5)
-    HAHAHAHAHA
-    => (defn splot [] (println "Splot!") 3)
-    #'cs340-lab15.core/splot
-    => (applyn + (splot) 3)
-    Splot!
-    Splot!
-    Splot!
-    9
+<div class="callout"><b>Important</b>: make sure you follow the requirements for each function.  For example, <b>my-flatten</b> must be recursive, and <b>conj-all</b> must be tail recursive.  Trivial solutions (e.g., <code>(defn my-flatten [a-seq] (flatten a-seq))</code> are not acceptable.</div>
 
-Note that the way that `applyn` works is subtly different than how a function works.  If `applyn` were a function, each argument would be evaluated exactly once.  As you can see from the second example above, the *val* argument is evaluated *n* times.
+## Resources you may use
 
-Suggestion: you can use the built-in `repeat` function to generate a sequence with multiple copies of a specified value.  E.g.,
+You may use your textbook, the [course website](http://ycpcs.github.io/cs340-fall2016), the [Clojure MOOC](http://mooc.fi/courses/2014/clojure/) website, the [clojure.org](http://clojure.org/) website, and the [clojuredocs.org](http://clojuredocs.org/) website.
 
-{% highlight clojure %}
-(repeat n val)
-{% endhighlight %}
+<!--
+# Solutions
 
-produces a sequence with *n* copies of *val*.  Also note that using `conj` to add an element to a sequence returned by `repeat` does a prepend, as though the sequence were a list.
-
-## `unless`
-
-This macro is similar to the **if** special form.  Its syntax is
-
-> (**unless** *cond* *if-false* *if-true*)
-
-First, *cond* should be evaluated.  If *cond* yields a false value, *if-false* should be evaluated and returned.  Otherwise, *if-true* should be evaluated and returned.
-
-Note that only one of *if-false* and *if-true* should be evaluated, not both.
-
-Hint: generate an **if** form as a result of the macro.
-
-Example use:
-
-    => (unless (< 5 4) "yip" "yap")
-    yip
-    => (unless (< 4 5) "yip" "yap")
-    yap
-    => (defn ned [] (println "I'm Ned!") 44)
-    #'cs340-lab15.core/ned
-    => (defn ted [] (println "I'm Ted!") 55)
-    #'cs340-lab15.core/ted
-    => (unless (< 5 4) (ned) (ted))
-    I'm Ned!
-    44
-    => (unless (< 4 5) (ned) (ted))
-    I'm Ted!
-    55
+Here are my solutions: [lab16.clj](https://github.com/ycpcs/cs340-fall2016/blob/gh-pages/labs/lab16.clj).  **Do not look at these until you have completed all of the functions on your own.**
+-->
