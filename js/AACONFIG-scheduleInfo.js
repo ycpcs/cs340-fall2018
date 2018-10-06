@@ -50,27 +50,33 @@ courseInfo.classPeriods = [
 	},
 	{
 		topic: new Topic("Lecture 12: Why Clojure?", "lectures/lecture12.html"),
-		lab: new NumberedLabNoFile(10, "Clojure warm up")
+		lab: new NumberedLabNoFile(10, "Clojure warm up"),
+		reading: "<i>CBT</i>, Chapters 1–2"
 	},
 	{
 		topic: new Topic("Lecture 13: Clojure data structures", "lectures/lecture13.html"),
-		lab: new NumberedLabNoFile(11, "Can I take you order?")
+		lab: new NumberedLabNoFile(11, "Can I take you order?"),
+		reading: "<i>CBT</i>, Chapter 3, pages 35–48"
 	},
 	{
 		topic: new Topic("Lecture 14: Clojure functions", "lectures/lecture14.html"),
-		lab: new NumberedLab(12, "Clojure functions", "cs340-lab12.zip")
+		lab: new NumberedLab(12, "Clojure functions", "cs340-lab12.zip"),
+		reading: "<i>CBT</i>, Chapter 3, pages 48–69"
 	},
 	{
 		topic: new Topic("Lecture 15: Map, filter, reduce, and higher-order functions", "lectures/lecture15.html"),
-		lab: new NumberedLab(13, "Tic Tac Toe", "cs340-lab13.zip")
+		lab: new NumberedLab(13, "Tic Tac Toe", "cs340-lab13.zip"),
+		reading: "<i>CBT</i>, Chapter 4, pages 71–84"
 	},
 	{
 		topic: new Topic("Lecture 16: Recursion and iteration", "lectures/lecture16.html"),
-		lab: new NumberedLabNoFile(14, "Recursion in Clojure")
+		lab: new NumberedLabNoFile(14, "Recursion in Clojure"),
+		reading: "<i>CBT</i>, Chapter 5"
 	},
 	{
 		topic: new Topic("Lecture 17: Clojure macros", "lectures/lecture17.html"),
-		lab: new NumberedLabNoFile(15, "Clojure macros")
+		lab: new NumberedLabNoFile(15, "Clojure macros"),
+		reading: "<i>CBT</i>, CBT, Chapters 7-8"
 	},
 	{
 		topic: new Topic("Clojure review 1", ""),
