@@ -55,7 +55,7 @@ courseInfo.classPeriods = [
 	},
 	{
 		topic: new Topic("Lecture 13: Clojure data structures", "lectures/lecture13.html"),
-		lab: new NumberedLabNoFile(11, "Can I take you order?"),
+		lab: new NumberedLabNoFile(11, "Can I take your order?"),
 		reading: "<i>CBT</i>, Chapter 3, pages 35–48"
 	},
 	{
