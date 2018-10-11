@@ -3,7 +3,7 @@ layout: default
 title: "Assignment 4: Calculator Language Interpreter"
 ---
 
-**Due**: Friday, Oct 12th by 11:59 PM
+**Due**: <strike>Friday, Oct 12th</strike> Wednesday, Oct 17th by 11:59 PM
 
 Getting Started
 ===============
@@ -339,6 +339,129 @@ To evaluate a function call:
 5. Return the result of recursively evaluating the called function's body in the new environment
 
 See [Lab 9](../labs/lab09.html) for more hints related to functions and function calls.
+
+# Grading
+
+The grading for the standard features is as follows:
+
+* Evaluate expressions with literal values: 40%
+* Variable assignment: 5%
+* Variable references: 10%
+* Functions with a single parameter: 10%
+* Calls to functions with a single parameter: 20%
+* Functions with 0 or multiple parameters: 5%
+* Calls to functions with 0 or multiple parameters: 10%
+
+## Extra credit
+
+For up to 40 points extra credit, implement
+
+* comparisons (less than, greater than, equality, inequality)
+* **if**/**else** expressions
+
+These will require changes to the lexer, parser, and interpreter.
+
+<div class="callout">
+<b>Important</b>: extra credit features must be 100% your own work.
+</div>
+
+Example:
+
+<pre>
+&gt; <b>fib = fn(n) { if (n &lt; 2) { n } else { fib(n-2) + fib(n-1) } }</b>
+ASSIGN
++--PRIMARY
+|  +--IDENTIFIER("fib")
++--PRIMARY
+   +--FN_KEYWORD("fn")
+   +--LPAREN("(")
+   +--OPT_PARAMETER_LIST
+   |  +--PARAMETER_LIST
+   |     +--IDENTIFIER("n")
+   +--RPAREN(")")
+   +--LBRACE("{")
+   +--PRIMARY
+   |  +--IF_KEYWORD("if")
+   |  +--LPAREN("(")
+   |  +--LESS_THAN
+   |  |  +--PRIMARY
+   |  |  |  +--IDENTIFIER("n")
+   |  |  +--PRIMARY
+   |  |     +--INT_LITERAL("2")
+   |  +--RPAREN(")")
+   |  +--LBRACE("{")
+   |  +--PRIMARY
+   |  |  +--IDENTIFIER("n")
+   |  +--RBRACE("}")
+   |  +--ELSE_KEYWORD("else")
+   |  +--LBRACE("{")
+   |  +--PLUS
+   |  |  +--PRIMARY
+   |  |  |  +--IDENTIFIER("fib")
+   |  |  |  +--LPAREN("(")
+   |  |  |  +--OPT_ARGUMENT_LIST
+   |  |  |  |  +--ARGUMENT_LIST
+   |  |  |  |     +--MINUS
+   |  |  |  |        +--PRIMARY
+   |  |  |  |        |  +--IDENTIFIER("n")
+   |  |  |  |        +--PRIMARY
+   |  |  |  |           +--INT_LITERAL("2")
+   |  |  |  +--RPAREN(")")
+   |  |  +--PRIMARY
+   |  |     +--IDENTIFIER("fib")
+   |  |     +--LPAREN("(")
+   |  |     +--OPT_ARGUMENT_LIST
+   |  |     |  +--ARGUMENT_LIST
+   |  |     |     +--MINUS
+   |  |     |        +--PRIMARY
+   |  |     |        |  +--IDENTIFIER("n")
+   |  |     |        +--PRIMARY
+   |  |     |           +--INT_LITERAL("1")
+   |  |     +--RPAREN(")")
+   |  +--RBRACE("}")
+   +--RBRACE("}")
+=&gt; &lt;&lt;function&gt;&gt;
+&gt; <b>fib(0)</b>
+PRIMARY
++--IDENTIFIER("fib")
++--LPAREN("(")
++--OPT_ARGUMENT_LIST
+|  +--ARGUMENT_LIST
+|     +--PRIMARY
+|        +--INT_LITERAL("0")
++--RPAREN(")")
+=&gt; 0
+&gt; <b>fib(1)</b>
+PRIMARY
++--IDENTIFIER("fib")
++--LPAREN("(")
++--OPT_ARGUMENT_LIST
+|  +--ARGUMENT_LIST
+|     +--PRIMARY
+|        +--INT_LITERAL("1")
++--RPAREN(")")
+=&gt; 1
+&gt; <b>fib(6)</b>
+PRIMARY
++--IDENTIFIER("fib")
++--LPAREN("(")
++--OPT_ARGUMENT_LIST
+|  +--ARGUMENT_LIST
+|     +--PRIMARY
+|        +--INT_LITERAL("6")
++--RPAREN(")")
+=&gt; 8
+&gt; <b>fib(7)</b>
+PRIMARY
++--IDENTIFIER("fib")
++--LPAREN("(")
++--OPT_ARGUMENT_LIST
+|  +--ARGUMENT_LIST
+|     +--PRIMARY
+|        +--INT_LITERAL("7")
++--RPAREN(")")
+=&gt; 13
+</pre>
 
 # Submitting
 
