@@ -5,9 +5,9 @@ title: "Assignment 4.5: Clojure MOOC"
 
 **Due**:
 
-* Milestone 1 is due Wednesday, Oct 17th
-* Milestone 2 is due Wednesday, Oct 24th
-* Milestone 3 is due Wednesday, Oct 31st
+* Milestone 1 is due Friday, Oct 19th
+* Milestone 2 is due Friday, Oct 26th
+* Milestone 3 is due Friday, Nov 2nd
 
 # Learning Clojure
 

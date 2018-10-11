@@ -20,6 +20,7 @@ This is the website for CS 340, Fall 2018 at York College.  All information abou
 
 ## News
 
+* **Oct 11** &mdash; The due dates for the milestones of [Assignment 4.5](assign/assign04_5.html) have each been moved back 2 days.
 * **Oct 11** &mdash; The due date for [Assignment 4](assign/assign04.html) has been moved to Wednesday, Oct 17th.
 * **Oct 6** &mdash; The [Schedule](schedule.html), [Labs](labs/index.html), and [Assignments](assign/index.html) pages have been updated.  [Assignment 4.5](assign/index.html) has been posted: see the assignment description for milestone due dates.
 * **Oct 3** &mdash; [Lecture 11](lectures/lecture11.html) and [Lab 9](labs/lab09.html) have been posted.  Also, [Assignment 4](assign/assign04.html) has been updated.
