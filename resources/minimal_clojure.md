@@ -9,7 +9,7 @@ This document describes how to set up a minimal Clojure environment under Linux 
 
 ## Java
 
-First, make sure that Java 1.8 or higher is installed.  If you run
+First, make sure that Java 1.8 <strike>or higher</strike> is installed.  (Note that Java versions greater than 1.8 may not work correctly, so you are best off running 1.8.)  If you run
 
 ```bash
 java -version
@@ -23,7 +23,7 @@ OpenJDK Runtime Environment (build 1.8.0_131-8u131-b11-2ubuntu1.16.04.3-b11)
 OpenJDK 64-Bit Server VM (build 25.131-b11, mixed mode)
 ```
 
-The exact output isn't important as long as the version number starts with `1.8` or `1.9`.
+The exact output isn't important as long as the version number starts with `1.8`.
 
 ## Leiningen
 
