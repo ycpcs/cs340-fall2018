@@ -89,6 +89,38 @@ courseInfo.classPeriods = [
 	{
 		topic: new Topic("** Exam 2", "")
 	},
+	{
+		topic: new Topic("Lecture 18: Prolog", "lectures/lecture18.html"),
+		lab: new Lab("No lab", "")
+	},
+	{
+		topic: new Topic("Lecture 19: More Prolog", "lectures/lecture19.html"),
+		lab: new NumberedLabNoFile(18, "Recursive List Processing in Prolog")
+	},
+	{
+		topic: new Topic("Lecture 20: Virtual Machines", "lectures/lecture20.html"),
+		lab: new NumberedLabNoFile(19, "MiniVM Programming")
+	},
+	{
+		topic: new Topic("Lecture 21: Erlang", "lectures/lecture21.html"),
+		lab: new Lab("No lab", "")
+	},
+	{
+		topic: new Topic("Lecture 22: More Erlang", "lectures/lecture22.html"),
+		lab: new NumberedLab(20, "Tail-recursive list merge in Erlang", "sort.erl")
+	},
+	{
+		topic: new Topic("Lecture 23: Concurrency in Erlang", "lectures/lecture23.html"),
+		lab: new Lab("No lab", "")
+	},
+	{
+		topic: new Topic("Lecture 24: Concurrency in Clojure", "lectures/lecture24.html"),
+		lab: new Lab("No lab", "")
+	},
+	{
+		topic: new Topic("Lecture 25: Agents in Clojure", "lectures/lecture25.html"),
+		lab: new Lab("No lab", "")
+	},
 ];
 
 // The following is for the college-scheduled final exam.

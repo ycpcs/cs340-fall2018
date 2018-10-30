@@ -1,202 +1,216 @@
 ---
 layout: default
-title: "Lecture 24: Concurrency in Erlang"
+title: "Lecture 24: Concurrency in Clojure"
 ---
 
-Example code: [echo.erl](echo.erl), [mandelbrot.erl](mandelbrot.erl), [rowactor.erl](rowactor.erl), [mandelbrotactor.erl](mandelbrotactor.erl)
+Concurrency in Clojure
+======================
 
-Concurrency in Erlang
-=====================
+Clojure supports several mechanisms for concurrency. The important thing to realize is that *none* of them involve
 
-Concurrency in Erlang is expressed using *processes*. A process is an independent thread of control that does not share memory with any other process: so, processes are isolated from each other. Processes communicate with each other by sending messages.
+-   unsynchronized access to mutable shared state, or
+-   explicit locking
 
-Processes in Erlang
--------------------
+Eliminating the possibility of an important class of errors such as data races and deadlocks. This doesn't mean that it is necessarily *easy* to express correct concurrent algorithms in Clojure, but there is more safety than in languages such as Java.
 
-A process is started by calling a function that takes no parameters. Ths function should use the **receive** construct to wait for a message to arrive, process the message, and then call itself recursively. (As long as the recursive call is in tail position, this will not cause growth of the call stack.)
+Because Clojure is a "mostly-functional" language, it is possible to write programs that use concurrency but do not use *any* mutable state. For example, many of the important built-in data structures (such as vectors, lists, and maps) are *immutable*: "modification" to such data structures produces a new data structure rather than destructively modifying the previous one. This can be very efficient, because most or all of the previous data structure can be re-used as-is rather than copying it.
 
-Here is a very simple actor: one that simply prints out any messages it receives:
+Futures
+-------
 
-{% highlight erlang %}
--module(echo).
--export([loop/0]).
+A *future* is one of the simplest forms of concurrency: it represents a "future result": one whose evaluation may be in progress, but which will be known at some future time.
 
-loop() ->
+A future is created using the **future** special form, which takes an expression and starts evaluating the expression concurrently. Simple example:
 
-  receive
-
-    Any -> io:format("Echo: ~w~n", [Any]), loop()
-
-  end.
-{% endhighlight %}
-
-The **receive** construct does pattern matching on received messages. In the echo actor above, the only pattern is the variable **Any**, which will match any value sent to the process.
-
-Example of compiling and running this process:
+The **@** construct forces completion of the future: if the future's result is not available yet, it will wait for completion.
 
 <pre>
-1> <b>c(echo).</b>
-{ok,echo}
-2> <b>EchoPid = spawn(fun echo:loop/0).</b>
-<0.39.0>
-3> <b>EchoPid ! "Hello".</b>
-Echo: [72,101,108,108,111]
-"Hello"
-4> <b>EchoPid ! {hey, there}.</b>
-Echo: {hey,there}
-{hey,there}
+user=&gt; <b>(def a (future (+ 2 3)))</b>
+#'user/a
+user=&gt; <b>a</b>
+#&lt;core$future_call$reify__6267@4f230afa: 5&gt;
+user=&gt; <b>@a</b>
+5
 </pre>
 
-Erlang processes are created by the built-in **spawn** function, and identified by *process ids*. To send a message to a process, the syntax is
+pcalls and pmap
+---------------
 
-> *ProcessId* ! *message*
+The **pcalls** and **pmap** functions invoke functions in parallel and builds a list of results.
 
-Example: The Mandelbrot Set using Erlang processes
---------------------------------------------------
-
-As a complete example, let's do the Mandelbrot set computation using Erlang actors. First, we need some functions to do complex arithmetic and to compute iteration counts for a row of complex numbers:
-
-{% highlight erlang %}
--module(mandelbrot).
--export([complexadd/2, complexmul/2, complexmagnitude/1,
-         computeitercount/1, computerow/1]).
-
-complexadd({A, B}, {C, D}) -> {A+C, B+D}.
-
-complexmul({A, B}, {C, D}) -> {A*C - B*D, B*C + A*D}.
-
-complexmagnitude({A, B}) -> math:sqrt(A*A + B*B).
-
-computeitercountwork(C, Z, Count) ->
-  MagnitudeOfZ = complexmagnitude(Z),
-  if
-  (Count >= 1000) or (MagnitudeOfZ > 2.0) -> Count;
-  true -> computeitercountwork(C, complexadd(complexmul(Z, Z), C), Count + 1)
-  end.
-
-computeitercount(C) -> computeitercountwork(C, {0.0, 0.0}, 0).
-
-computerowwork(RowNum, Y, XStart, XInc, CurCol, Accum) ->
-  if
-  (CurCol < 0) -> {rowresult, RowNum, Accum};
-  true ->
-    X = XStart + (CurCol * XInc),
-    IterCount = computeitercount({X, Y}),
-    computerowwork(RowNum, Y, XStart, XInc, CurCol - 1, [IterCount | Accum])
-  end.
-
-computerow({row, RowNum, Y, XStart, XInc, NumCols}) ->
-  computerowwork(RowNum, Y, XStart, XInc, NumCols-1, []).
-{% endhighlight %}
-
-Next, an actor process which receives messages specifying rows of iteration counts to be computed, computes them, and sends the results back to a result collector process:
-
-{% highlight erlang %}
--module(rowactor).
--export([loop/0]).
-
-loopwork(ResultCollector) ->
-  receive
-
-    % The result collector process has sent us its pid.
-    {resultcollectorpid, ResultCollectorPid} ->
-      loopwork(ResultCollectorPid);
-
-    % Received a row to compute: compute it and send result back to result collector.
-    {row, RowNum, Y, XStart, XInc, NumCols} ->
-      ResultCollector ! mandelbrot:computerow({row, RowNum, Y, XStart, XInc, NumCols}),
-      loopwork(ResultCollector)
-
-  end.
-
-loop() -> loopwork(unknown).
-{% endhighlight %}
-
-Note one interesting detail: the first message the row actor process should receive is a tuple of the form
-
-> {resultcollectorpid, *Pid*}
-
-which specifies the process id of the process to which computed row results should be sent. Once this message is received, all subsequent calls to **loopwork** will have this process id available.
-
-Finally, an actor which receives a message describing a region of the complex plane, creates row actors, sends work to the row actors, and waits for row results to be sent back:
-
-{% highlight erlang %}
--module(mandelbrotactor).
--export([loop/0]).
-
-% Send work to a specified row actor process.
-sendwork(Pid, XMin, XMax, YMin, YMax, NumCols, NumRows, NumProcs, RowNum) ->
-  if
-  % We're done if there is no more work to send
-  (RowNum >= NumRows) -> true;
-  true ->
-     % Send one row
-     Pid ! {row, RowNum, YMin + (RowNum*((YMax-YMin)/NumRows)),
-                 XMin, (XMax-XMin)/NumCols,
-                 NumCols},
-     % Send the rest of the rows
-     sendwork(Pid, XMin, XMax, YMin, YMax, NumCols, NumRows,
-              NumProcs, RowNum + NumProcs)
-  end.
-
-% Start row actor processes.
-startprocs(_, _, _, _, _, _, N, N, Pids) -> Pids;
-startprocs(XMin, XMax, YMin, YMax, NumCols, NumRows, NumProcs, CurProc, Pids) ->
-  % Spawn a process to compute rows
-  Pid = spawn(fun rowactor:loop/0),
-  % Inform process where to send results (back to this process) 
-  Pid ! {resultcollectorpid, self()},
-  % Send the process the rows it should compute
-  sendwork(Pid, XMin, XMax, YMin, YMax, NumCols, NumRows, NumProcs, CurProc),
-  % Spawn the rest of the processes
-  startprocs(XMin, XMax, YMin, YMax, NumCols, NumRows, NumProcs, CurProc + 1,
-             [Pid | Pids]).
-
-loop() ->
-  receive
-
-    {start, XMin, XMax, YMin, YMax, NumCols, NumRows, NumProcs} ->
-
-      % Start processes
-      startprocs(XMin, XMax, YMin, YMax, NumCols, NumRows,
-                 NumProcs, 0, []),
-      loop();
-
-    {rowresult, RowNum, Data} ->
-
-      % Just print out the received data
-      io:format("~w: ~w~n", [RowNum, Data]), loop()
-
-  end.
-{% endhighlight %}
-
-Note that completed row results are just printed out using **io:format**, in whatever order they arrive.
-
-Example run:
+**pmap** invokes a single function (in parallel) on each element of a list (or other sequence):
 
 <pre>
-1> <b>c(mandelbrot).</b>
-{ok,mandelbrot}
-2> <b>c(rowactor).</b>
-{ok,rowactor}
-3> <b>c(mandelbrotactor).</b>
-{ok,mandelbrotactor}
-4> <b>Pid = spawn(fun mandelbrotactor:loop/0).</b>
-<0.49.0>
-5> <b>Pid ! {start, -2, 2, -2, 2, 10, 10, 3}.</b>
-{start,-2,2,-2,2,10,10,3}
-2: [1,2,2,3,3,3,2,2,2,2]
-0: [1,1,1,1,1,2,1,1,1,1]
-3: [1,3,3,4,6,18,4,2,2,2]
-1: [1,1,2,2,2,2,2,2,2,1]
-5: [1000,1000,1000,1000,1000,1000,7,3,2,2]
-8: [1,2,2,3,3,3,2,2,2,2]
-6: [1,3,7,7,1000,1000,9,3,2,2]
-9: [1,1,2,2,2,2,2,2,2,1]
-4: [1,3,7,7,1000,1000,9,3,2,2]
-7: [1,3,3,4,6,18,4,2,2,2]
+user=> <b>(pmap (fn [x] (* x 2)) '(1 2 3 4 5))</b>
+(2 4 6 8 10)
 </pre>
 
-In this example run, we used three row actor processes to compute 10 rows. Each row actor computes every *n*th row, where *n* is the number of processes.
+**pmap** works more or less the same as **map**, but if the computation being performed for each element of the sequence is expensive, could allow parallelism.
 
-As you can see, the row results do not come back in sorted order, so some additional work is needed to put them in order.
+**pcalls** invokes an arbitrary series of 0-argument functions in parallel and builds a list containing the results. (We'll see a use of **pcalls** in the next section.)
+
+Software Transactional Memory
+-----------------------------
+
+For some concurrent computations, you may want to use shared mutable state. Clojure makes it relatively easy to express these kinds of computations through *software transactional memory*. The idea is that the state that can change is expressed as *refs*. A ref is a "box" that holds a value, but the value in the box can be changed at any time.
+
+The value of a ref can only be changed within a *transaction*. A transaction may read the values of refs as well as modify the values of refs. When the end of a transaction is reached, its results are *committed* only if the values of the refs have not been changed by another transaction. This means that the effects (modifications to shared data) of a transaction either take effect completely, or not at all. No explicit locking or synchronization by the program is required.
+
+Example: map coloring. Given a map --- for example, a map of the US --- assign colors to the geographical regions (e.g. states) such that neighboring regions never have the same color.
+
+A simple way to find a map coloring is to start by assigning all regions the same color, and then, for each region, looking at neighboring regions and attempting to find a color that is not used by any neighboring region.
+
+Here is a program that uses the **pcalls** function to attempt to find a legal color for each US state, based on the [adjacency lists for each state](http://writeonly.wordpress.com/2009/03/20/adjacency-list-of-states-of-the-united-states-us/):
+
+> [statecolors.clj](statecolors.clj)
+
+The **find-state-colors** function uses **pcalls** to start a worker function for each state. Each worker repeatedly executes a transaction which
+
+-   checks the colors of the neighbors
+-   if possible, updates the state's color to be a color not used by any of its neighbors
+
+The **state-colors** vector contains one ref for each state, where the value of each ref is initially set to red:
+
+{% highlight clojure %}
+(def state-colors
+  (vec (repeatedly (count state-adjacency-list) (fn [] (ref 'red)))))
+{% endhighlight %}
+
+Here is the **worker** function, which attempts to find a color for a given state (the state is identified by an index number):
+
+{% highlight clojure %}
+; Worker function to try computing a color for a state
+; by examining the colors of adjacent states and (if possible)
+; picking a color that is not used by the neighboring states.
+(defn worker [index count maxiters ok]
+  (if (= count maxiters)
+    ; Reached the end of the computation:
+    ; return the final color, along with boolean indicating whether
+    ; the final color is legal (as far as we can tell)
+    (list (deref (nth state-colors index)) ok)
+    ; In a transaction, attempt to find a color for the state.
+    (do
+      ; The found-legal-color variable will be set to the
+      ; result of the transaction: true if we found a
+      ; legal color for the state, false if not.
+      ; This value is sent into the next recursive call
+      ; so we always have an idea of whether or not this
+      ; worker was able to find a legal color for its state.
+      (let [found-legal-color
+             ; Start a transaction.
+             (dosync
+               ; Find state's current color and the colors of
+               ; of its neighbors.
+               (let [my-color (deref (nth state-colors index))
+                     neighbor-colors (get-neighbor-colors index)]
+                 (if (contains? neighbor-colors my-color)
+                   ; The state is using the same color as one of
+                   ; its neighbors, so choose a new color
+                   ; by setting the state's ref to a new color.
+                   ; Evaluate to true or false depending on
+                   ; whether the new color is different from
+                   ; its neighbors' colors.
+                   (let [new-color (choose-other-color neighbor-colors my-color)]
+                     (do (ref-set (nth state-colors index) new-color)
+                         (not (contains? neighbor-colors new-color))))
+                   ; Current color is ok
+                   true)))]
+      ; Continue recursively.
+      (recur index (+ count 1) maxiters found-legal-color)))))
+{% endhighlight %}
+
+The interesting part is the **dosync** which executes the examination of the neighbors' colors and updates the state's color in a transaction. The result of the overall call to the worker function is a list with two elements: the first is the state's final color, and the second is a boolean which indicates whether or not a legal color was found for the state.
+
+The **find-state-colors** function invokes the worker function in parallel, once for each state:
+
+{% highlight clojure %}
+(defn find-state-colors [maxiters]
+  (apply pcalls (map (fn [i] (fn [] (worker i 1 maxiters false)))
+                     (range 0 (count state-adjacency-list)))))
+{% endhighlight %}
+
+Note that the result of the call to **map** is a list of functions, where each function will invoke the **worker** function with the specified index value and maximum number of iterations. The inidices are generated by the **range** function. The result of **pcalls** is a list containing the result of each parallel function.
+
+Example run (user input in **bold**):
+
+<pre>
+user=> <b>(find-state-colors 1000)</b>
+((red true) (blue true) (purple true) (yellow true) (green true)
+ (yellow true) (blue true) (green true) (purple true) (green true)
+ (purple true) (red true) (blue true) (blue true) (yellow true)
+ (green true) (green true) (purple true) (green true) (yellow true)
+ (blue true) (yellow true) (purple true) (yellow true) (red true)
+ (yellow true) (yellow true) (blue true) (blue true) (purple true)
+ (blue true) (green true) (red true) (red true) (purple true)
+ (yellow true) (blue true) (yellow true) (red true) (red true)
+ (red true) (green true) (green true) (yellow true) (purple true)
+ (yellow true) (green true) (red true) (red true) (green true)
+ (red true))
+</pre>
+
+The **check-state-colors** function checks the final **state-colors** vector to ensure that each state was assigned a color different from its neighbors:
+
+{% highlight clojure %}
+(defn check-state [i neighbors]
+  (if (empty? neighbors)
+      true
+      (let [neighbor-index (state-to-index-map (first neighbors))]
+        (if (= (deref (nth state-colors i)) (deref (nth state-colors neighbor-index)))
+            false
+            (recur i (rest neighbors))))))
+
+(defn check-state-colors []
+  (letfn [(work [i n]
+            (if (= i n)
+                true
+                (if (not (check-state i (get-neighbors i)))
+                    false
+                    (recur (+ i 1) n))))]
+    (work 0 (count state-colors))))
+{% endhighlight %}
+
+Calling **check-state-colors** to ensure that the computation was successful:
+
+<pre>
+user=> <b>(check-state-colors)</b>
+true
+</pre>
+
+Agents
+------
+
+Agents are much like actors in Erlang and Scala: an agent is a sequential process that receives messages and processes them, and may send messages to other actors.
+
+An interesting characteristic of agents in Clojure is that messages are functions that operate on two values:
+
+-   The agent's current data
+-   Message data (that is explicitly sent to the agent)
+
+The result of a message function becomes the new "current data" of the agent.
+
+Really simple example:
+
+{% highlight clojure %}
+(defn say [count msg]
+  (do
+    (println count)
+    (println msg)
+    (+ count 1)))
+{% endhighlight %}
+
+Dynamically creating an agent and sending it some messages:
+
+<pre>
+user=&gt; <b>(def my-agent (agent 1))</b>
+#'user/my-agent
+user=&gt; <b>(send my-agent say "Hello")</b>
+1
+Hello
+#&lt;Agent@10e98462: 2&gt;
+user=&gt; <b>(send my-agent say "World")</b>
+2
+World
+#&lt;Agent@10e98462: 2&gt;
+</pre>
+
+In this example, the agent's data is a number that is incremented each time the **say** message is received.

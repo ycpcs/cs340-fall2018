@@ -1,6 +1,6 @@
 ---
 layout: default
-title: "Lab 14: Recursive List Processing in Prolog"
+title: "Lab 18: Recursive List Processing in Prolog"
 ---
 
 # Your task

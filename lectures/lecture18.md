@@ -1,6 +1,6 @@
 ---
 layout: default
-title: "Lecture 17: Prolog"
+title: "Lecture 18: Prolog"
 ---
 
 Prolog is a *declarative programming language* based on logical inference. It is the main example of a language in the *logic programming* paradigm.

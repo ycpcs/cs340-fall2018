@@ -1,40 +1,183 @@
 ---
 layout: default
-title: "Lecture 21: Virtual Machines"
+title: "Lecture 21: Erlang"
 ---
 
-# Language implementation strategies
+Example source code: [series.erl](series.erl), [sort.erl](../labs/sort.erl)
 
-An implementation of a programming language must provide some mechanism for executing programs.  There are several common strategies.
+Erlang
+======
 
-An *interpreter* converts the program into a data structure (often an abstract syntax tree), and then executes the program by evaluating the data structure, typically with the support of other run-time data structures such as an activation record stack and a heap for dynamic allocation.  Interpreters are (generally) easy to implement, and permit significant flexibility in what kinds of language features can be implemented.  Dynamic languages are often implemented using interpreters: this is true of the standard implementations of Ruby and Python.  Interpreters typically impose some overhead compared to machine code executed directly on the CPU: for example, it is not unusual for a program executed on an interpreter to take 10 times longer to complete a computationally-intensive task than an equivalent machine language program executing directly on the CPU.
+The origin of the name is both **Er**icsson **Lang**uage and the mathematician [Agner Erlang](http://en.wikipedia.org/wiki/Agner_Krarup_Erlang). It was invented by Joe Armstrong in 1986 for use in telephone exchange systems. The requirements of this application domain (fault-tolerance, concurrency) significantly influenced the language design.
 
-A *compiler* converts the program into executable machine language.  The program is then loaded directly into memory by the operating system and executed directly on the CPU.  The operating system and a "runtime library" provide support for run-time data structures such as the stack and heap.  Compiled programs, if carefully optimized, can get arbitrarily close to achieving the maximum possible performance.  C and C++ are usually implemented by compilation.
+Characteristics:
 
-A *virtual machine* permits a hybrid approach.  A virtual machine is essentially an interpreter for a "virtual" machine language: this virtual machine language is often called "bytecode".  The virtual machine may execute bytecode
+-   functional: a variable may be assigned a value only once
+-   dynamically-typed
+-   concurrency implemented by lightweight processes (like threads, but no shared memory) which communicate by exchanging messages
 
-* by interpreting it
-* by translating it to machine code at run-time ("Just In Time" compilation)
-* by using both interpretation and JIT compilation (many JVMs, including the default Hotspot JVM, work this way)
+Processes in Erlang are similar to actors in Scala.
 
-Java, Scala, Clojure, and C# are all typically implemented by compilation to virtual machine bytecode.  JavaScript is also usually implemented on a virtual machine (using interpretation and JIT compilation), although typically without an explicit bytecode representation.
+Syntax, Data types
+==================
 
-Virtual machines using JIT compilation can achieve performance comparable to the performance of natively compiled code.
+Erlang is a descendant of Prolog, and the syntax is very similar. Like Prolog, Erlang supports pattern matching to extract data values from composite data values such as lists and tuples.
 
-Note that there is another meaning for the term "Virtual Machine", which is an environment which virtualizes an entire computer to permit executing of a guest operating system within a host operating system.  Examples of this type of "system-level" VM include VMWare, VirtualBox, KVM, Xen, QEMU, and many others.  There are important similarities between system-level and language VMs, and in many cases they share common implementation strategies.
+The syntax is very similar to Prolog:
 
-# Benefits of virtual machines
+-   statements end with a period
+-   variable names must begin with an upper-case letter
 
-Virtual Machines offer a number of benefits.
+The built-in data types in Erlang are similar to those supported by Prolog. They include
 
-They can permit the same program to be run on different operating systems and CPU architectures.  The Java Virtual Machine (JVM) has been fairly successful in providing a consistent runtime environment on many OSes and CPUs.
+-   symbols
+-   numbers
+-   lists
+-   tuples (fixed-size records)
+-   bit strings
 
-They can enforce safety features.  For example, the JVM does not permit a program to access arbitrary memory or execute arbitrary machine code (except in the case of bugs in the JVM implementation.)  This can eliminate broad classes of bugs, such as stack overflows (which are a common cause of security vulnerabilities for C and C++ programs.)
+Tuples
+------
 
-# Drawbacks of virtual machines
+A tuple is a fixed-length series of values. Arbitrary record data structures can be created using tuples.
 
-The main drawback of virtual machines is memory and CPU overhead compared to natively compiled programs.  A virtual machine using JIT compilation requires CPU time to translate bytecode into optimized machine code, and requires memory for run-time structures (representations of the program code) that are not needed for native executables.  For long-running programs on computers with ample CPU and memory resources, this is often not a concern.  For resource-constrained environments, this may be more problematic.
+An important convention in Erlang is to use a symbol as the first member of a tuple as a tag to indicate the type of data the tuple contains.
 
-<!-- vim:set wrap: ­-->
-<!-- vim:set linebreak: -->
-<!-- vim:set nolist: -->
+For example:
+
+{% highlight erlang %}
+{ lineitem, {item, "Bananas"}, {quantity, 44} }
+{% endhighlight %}
+
+This is a tuple marked with the symbol (tag) **bananas**, with two nested tuples marked with the symbols **item** and **quantity**. This tuple might be part of a data structure used in an inventory-tracking system.
+
+We could assign this tuple to a variable:
+
+{% highlight erlang %}
+Item = { lineitem, {item, "Bananas"}, {quantity, 44} }.
+{% endhighlight %}
+
+Things get interesting when we use pattern matching to extract information from the tuple:
+
+{% highlight erlang %}
+{lineitem, {item, "Bananas"}, {quantity, HowMany}} = Item.
+{% endhighlight %}
+
+This statement assigns the quantity associated with the **Item** tuple to the variable **HowMany**. This is the same idea as unification in Prolog: Erlang will try to make the left hand side equivalent to the right hand side.  It is also reminscent of vector destructuring in Clojure.  Constant values such as symbols and strings must be exactly equal for the match to succeed. Variables will match whatever value they correspond to on the other side.
+
+Functions
+=========
+
+Functions in Erlang are specified in much the same way as inference rules in Prolog.
+
+Annoying detail
+---------------
+
+Erlang has an interactive interpreter called **erl** in which you can enter Erlang statements and have them evaluated. However, you cannot define functions interactively. Instead, they must be defined in a separate source file (*module*) and compiled.
+
+Example function
+----------------
+
+Because Erlang is a functional language, all computations involving repetition must be done recursively. Example: computing the nth Fibonacci number in Erlang.
+
+Here is a module defined in a source file called **series.erl**:
+
+{% highlight erlang %}
+-module(series).
+-export([fib/1]).
+
+fib(0) -> 1;
+fib(1) -> 1;
+fib(N) -> fib(N-2) + fib(N-1).
+{% endhighlight %}
+
+To iteractively compile this module and execute the **fib** function in **erl**:
+
+<pre>
+4> <b>c(series).</b>
+{ok,fib}
+5> <b>series:fib(6).</b>
+13
+</pre>
+
+The built-in **c** function compiles a module whose name is specified as a symbol. Note that when an Erlang function is called, it must be prefixed with the name of the module in which it is defined. So, **series:fib** means to call a function called **fib** defined in a module called **series**.
+
+More efficient version
+----------------------
+
+As you may recall from CS 201, the naive recursive implementation of **fib** has exponential running time. We can compute it more efficiently by avoiding revisiting the same recursive subproblem multiple times.
+
+The idea is to use a tail-recursive implementation using an accumulator parameter. The base cases of the tail recursive helper function (**fibtailrecwork**) are the same as the original version. The recursive case's **Cur** parameter counts up from 2 to **N**, keeping track of the current Fibonacci number (**Accum**) and the previous Fibonacci number (**Prev**). Until **Cur** = **N**, recursive calls are made which compute the next Fibonacci number.
+
+Note that in the base cases, we use the special variable name **\_** to indicate parameters that aren't used. You can think of this as the "don't care" variable name.
+
+Here's the complete module:
+
+{% highlight erlang %}
+-module(series).
+-export([fib/1, fibtailrec/1]).
+
+fib(0) -> 1;
+fib(1) -> 1;
+fib(N) -> fib(N-2) + fib(N-1).
+
+fibtailrec(N) -> fibtailrecwork(N, 2, 1, 2).
+
+fibtailrecwork(0, _, _, _) -> 1;
+fibtailrecwork(1, _, _, _) -> 1;
+fibtailrecwork(N, N, _, Accum) -> Accum;
+fibtailrecwork(N, Cur, Prev, Accum) -> fibtailrecwork(N, Cur+1, Accum, Prev+Accum).
+{% endhighlight %}
+
+Merge sort in Erlang
+--------------------
+
+Here is merge sort in Erlang. It is similar to [merge sort in Prolog](lecture19.html), although simpler because functions in Erlang return values rather than making logical assertions.
+
+First, the **merge** function:
+
+{% highlight erlang %}
+merge([], Any) -> Any;
+merge(Any, []) -> Any;
+merge([X|RestL], [Y|RestR]) ->
+  if
+    X<Y  -> [X | merge(RestL, [Y|RestR])];
+    true -> [Y | merge([X|RestL], RestR)]
+  end.
+{% endhighlight %}
+
+The base cases state that merging an empty list with any other list results in the other list.
+
+The recursive case uses an **if** expression to test which of the head elements of the two lists being merged is smaller, and then constructs a new list with the appropriate head element.
+
+Note that this merge function could be improved: it is not tail recursive (the construction of the result list happens after the recursive call to **merge** completes).
+
+Next, the **mergesort** function:
+
+{% highlight erlang %}
+mergesort([]) -> [];
+mergesort([A]) -> [A];
+mergesort(List) ->
+  N = length(List),
+  % Sublist containing the first N/2 elements.
+  Left = lists:sublist(List, N div 2),
+  % Sublist containing the remaining elements.
+  % Note: list elements are indexed starting at 1, not 0.
+  Right = lists:sublist(List, (N div 2) + 1, N - (N div 2)),
+  % Recursively sort left and right sublists.
+  LeftSorted = mergesort(Left),
+  RightSorted = mergesort(Right),
+  % Merge the results of sorting the left and right sublists.
+  merge(LeftSorted, RightSorted).
+{% endhighlight %}
+
+Again, this function is quite a bit simpler than the equivalent version in Prolog because it returns a value instead of making a logical assertion. Note that we can use a series of expressions separated by commas to define the recursive case, and the result of the last expression is used as the result of the function.
+
+Take a look at [sort.erl](../labs/sort.erl) to see the entire module.
+
+Example of calling the **mergesort** function in the **erl** interpreter:
+
+<pre>
+40> <b>sort:mergesort([11, 86, 2, 69, 22, 39, 85, 57, 78, 76]).</b>
+[2,11,22,39,57,69,76,78,85,86]
+</pre>

@@ -1,149 +1,202 @@
 ---
 layout: default
-title: "Lecture 23: More Erlang"
+title: "Lecture 23: Concurrency in Erlang"
 ---
 
-Example code: [map.erl](map.erl), [filter.erl](filter.erl)
+Example code: [echo.erl](echo.erl), [mandelbrot.erl](mandelbrot.erl), [rowactor.erl](rowactor.erl), [mandelbrotactor.erl](mandelbrotactor.erl)
 
-Anonymous Functions
-===================
+Concurrency in Erlang
+=====================
 
-Many languages, including Clojure, Scala, and Ruby, have the ability to define "anonymous" blocks of code. An important use of such code blocks is to transform a series of values from a collection (e.g., passing an anonymous function to the Clojure **map** function.)
+Concurrency in Erlang is expressed using *processes*. A process is an independent thread of control that does not share memory with any other process: so, processes are isolated from each other. Processes communicate with each other by sending messages.
 
-Erlang supports anonymous functions. Because Erlang is dynamically-typed, an anonymous function can be assigned to a variable (Clojure allows this as well). You can think of an anonymous function as being a value, in much the same way that numbers, lists, and tuples are values in Erlang. Like all other values, they can be passed to functions and returned from functions.
+Processes in Erlang
+-------------------
 
-Example:
+A process is started by calling a function that takes no parameters. Ths function should use the **receive** construct to wait for a message to arrive, process the message, and then call itself recursively. (As long as the recursive call is in tail position, this will not cause growth of the call stack.)
 
-<pre>
-1&gt; <b>Add1 = fun(N) -&gt; N+1 end.</b>
-#Fun&lt;erl_eval.6.80247286&gt;
-2&gt; <b>Add1(3).</b>
-4
-</pre>
-
-Here, we defined a function of one parameter **N** that adds 1 to its parameter and returns the result.
-
-More interesting example:
-
-<pre>
-3&gt; <b>AddN = fun(N) -&gt; fun(X) -&gt; N+X end end.</b>
-#Fun&lt;erl_eval.6.80247286&gt;
-4&gt; <b>Add12 = AddN(12).</b>
-#Fun&lt;erl_eval.6.80247286&gt;
-5&gt; <b>Add12(11).</b>
-23
-</pre>
-
-In this example, the **AddN** function takes a parameter **N** and returns a function that adds **N** to its parameter **X**. By calling **AddN** with the argument value 12, we create a function that adds 12 to its parameter.
-
-The concept of returning a function from a function is called *currying*.
-
-Transforming Lists
-==================
-
-Anonymous functions can be applied to lists to select or transform the values in the list.
-
-One way to transform a list is to *map* a function onto each element of the list, producing a list of transformed values as a result.
-
-Here is a possible implementation of a map function:
+Here is a very simple actor: one that simply prints out any messages it receives:
 
 {% highlight erlang %}
--module(map).
--export([map/2]).
+-module(echo).
+-export([loop/0]).
 
-map(_, []) -> [];
-map(F, [First|Rest]) -> [F(First) | map(F, Rest)].
+loop() ->
+
+  receive
+
+    Any -> io:format("Echo: ~w~n", [Any]), loop()
+
+  end.
 {% endhighlight %}
 
-The implementation is quite simple. The base case is an empty list, where the result is simply the empty list. In the recursive case, the function *F* is applied to the first element of the list, and prepended onto the list that results from recursively applying *F* to the rest of the list.
+The **receive** construct does pattern matching on received messages. In the echo actor above, the only pattern is the variable **Any**, which will match any value sent to the process.
 
-Testing it on a list:
+Example of compiling and running this process:
 
 <pre>
-8&gt; <b>map:map(fun(N) -&gt; N*2 end, [1, 2, 3]).</b>
-[2,4,6]
+1> <b>c(echo).</b>
+{ok,echo}
+2> <b>EchoPid = spawn(fun echo:loop/0).</b>
+<0.39.0>
+3> <b>EchoPid ! "Hello".</b>
+Echo: [72,101,108,108,111]
+"Hello"
+4> <b>EchoPid ! {hey, there}.</b>
+Echo: {hey,there}
+{hey,there}
 </pre>
 
-Note that the implementation of **map** above is not tail-recursive. Here is a tail-recursive version:
+Erlang processes are created by the built-in **spawn** function, and identified by *process ids*. To send a message to a process, the syntax is
+
+> *ProcessId* ! *message*
+
+Example: The Mandelbrot Set using Erlang processes
+--------------------------------------------------
+
+As a complete example, let's do the Mandelbrot set computation using Erlang actors. First, we need some functions to do complex arithmetic and to compute iteration counts for a row of complex numbers:
 
 {% highlight erlang %}
--module(map).
--export([map/2]).
+-module(mandelbrot).
+-export([complexadd/2, complexmul/2, complexmagnitude/1,
+         computeitercount/1, computerow/1]).
 
-mapwork(_, [], Accum) -> lists:reverse(Accum);
-mapwork(F, [First|Rest], Accum) -> mapwork(F, Rest, [F(First)|Accum]).
+complexadd({A, B}, {C, D}) -> {A+C, B+D}.
 
-map(F, L) -> mapwork(F, L, []).
-{% endhighlight %}
+complexmul({A, B}, {C, D}) -> {A*C - B*D, B*C + A*D}.
 
-Because the accumulator builds the result list with the transformed elements in reverse order, we apply the built-in **lists:reverse** function before returning the final result.
+complexmagnitude({A, B}) -> math:sqrt(A*A + B*B).
 
-Another useful list-transformation technique is filtering a list to retain or discard elements matching a specified predicate:
-
-{% highlight erlang %}
--module(filter).
--export([retain/2, discard/2]).
-
-filterwork(_, [], _, Accum) -> lists:reverse(Accum);
-filterwork(F, [First|Rest], Keep, Accum) ->
-  Test = F(First),
+computeitercountwork(C, Z, Count) ->
+  MagnitudeOfZ = complexmagnitude(Z),
   if
-    (Test and Keep) or (not Test and not Keep) ->
-       filterwork(F, Rest, Keep, [First | Accum]);
-    true -> filterwork(F, Rest, Keep, Accum)
+  (Count >= 1000) or (MagnitudeOfZ > 2.0) -> Count;
+  true -> computeitercountwork(C, complexadd(complexmul(Z, Z), C), Count + 1)
   end.
 
-retain(F, List) -> filterwork(F, List, true, []).
+computeitercount(C) -> computeitercountwork(C, {0.0, 0.0}, 0).
 
-discard(F, List) -> filterwork(F, List, false, []).
+computerowwork(RowNum, Y, XStart, XInc, CurCol, Accum) ->
+  if
+  (CurCol < 0) -> {rowresult, RowNum, Accum};
+  true ->
+    X = XStart + (CurCol * XInc),
+    IterCount = computeitercount({X, Y}),
+    computerowwork(RowNum, Y, XStart, XInc, CurCol - 1, [IterCount | Accum])
+  end.
+
+computerow({row, RowNum, Y, XStart, XInc, NumCols}) ->
+  computerowwork(RowNum, Y, XStart, XInc, NumCols-1, []).
 {% endhighlight %}
 
-Examples of using these functions:
+Next, an actor process which receives messages specifying rows of iteration counts to be computed, computes them, and sends the results back to a result collector process:
+
+{% highlight erlang %}
+-module(rowactor).
+-export([loop/0]).
+
+loopwork(ResultCollector) ->
+  receive
+
+    % The result collector process has sent us its pid.
+    {resultcollectorpid, ResultCollectorPid} ->
+      loopwork(ResultCollectorPid);
+
+    % Received a row to compute: compute it and send result back to result collector.
+    {row, RowNum, Y, XStart, XInc, NumCols} ->
+      ResultCollector ! mandelbrot:computerow({row, RowNum, Y, XStart, XInc, NumCols}),
+      loopwork(ResultCollector)
+
+  end.
+
+loop() -> loopwork(unknown).
+{% endhighlight %}
+
+Note one interesting detail: the first message the row actor process should receive is a tuple of the form
+
+> {resultcollectorpid, *Pid*}
+
+which specifies the process id of the process to which computed row results should be sent. Once this message is received, all subsequent calls to **loopwork** will have this process id available.
+
+Finally, an actor which receives a message describing a region of the complex plane, creates row actors, sends work to the row actors, and waits for row results to be sent back:
+
+{% highlight erlang %}
+-module(mandelbrotactor).
+-export([loop/0]).
+
+% Send work to a specified row actor process.
+sendwork(Pid, XMin, XMax, YMin, YMax, NumCols, NumRows, NumProcs, RowNum) ->
+  if
+  % We're done if there is no more work to send
+  (RowNum >= NumRows) -> true;
+  true ->
+     % Send one row
+     Pid ! {row, RowNum, YMin + (RowNum*((YMax-YMin)/NumRows)),
+                 XMin, (XMax-XMin)/NumCols,
+                 NumCols},
+     % Send the rest of the rows
+     sendwork(Pid, XMin, XMax, YMin, YMax, NumCols, NumRows,
+              NumProcs, RowNum + NumProcs)
+  end.
+
+% Start row actor processes.
+startprocs(_, _, _, _, _, _, N, N, Pids) -> Pids;
+startprocs(XMin, XMax, YMin, YMax, NumCols, NumRows, NumProcs, CurProc, Pids) ->
+  % Spawn a process to compute rows
+  Pid = spawn(fun rowactor:loop/0),
+  % Inform process where to send results (back to this process) 
+  Pid ! {resultcollectorpid, self()},
+  % Send the process the rows it should compute
+  sendwork(Pid, XMin, XMax, YMin, YMax, NumCols, NumRows, NumProcs, CurProc),
+  % Spawn the rest of the processes
+  startprocs(XMin, XMax, YMin, YMax, NumCols, NumRows, NumProcs, CurProc + 1,
+             [Pid | Pids]).
+
+loop() ->
+  receive
+
+    {start, XMin, XMax, YMin, YMax, NumCols, NumRows, NumProcs} ->
+
+      % Start processes
+      startprocs(XMin, XMax, YMin, YMax, NumCols, NumRows,
+                 NumProcs, 0, []),
+      loop();
+
+    {rowresult, RowNum, Data} ->
+
+      % Just print out the received data
+      io:format("~w: ~w~n", [RowNum, Data]), loop()
+
+  end.
+{% endhighlight %}
+
+Note that completed row results are just printed out using **io:format**, in whatever order they arrive.
+
+Example run:
 
 <pre>
-18&gt; <b>filter:retain(fun(N) -&gt; N &gt; 4 end, [1, 2, 3, 4, 5, 6, 7, 8]).</b>
-[5,6,7,8]
-19&gt; <b>filter:discard(fun(N) -&gt; N &gt; 4 end, [1, 2, 3, 4, 5, 6, 7, 8]).</b>
-[1,2,3,4]
+1> <b>c(mandelbrot).</b>
+{ok,mandelbrot}
+2> <b>c(rowactor).</b>
+{ok,rowactor}
+3> <b>c(mandelbrotactor).</b>
+{ok,mandelbrotactor}
+4> <b>Pid = spawn(fun mandelbrotactor:loop/0).</b>
+<0.49.0>
+5> <b>Pid ! {start, -2, 2, -2, 2, 10, 10, 3}.</b>
+{start,-2,2,-2,2,10,10,3}
+2: [1,2,2,3,3,3,2,2,2,2]
+0: [1,1,1,1,1,2,1,1,1,1]
+3: [1,3,3,4,6,18,4,2,2,2]
+1: [1,1,2,2,2,2,2,2,2,1]
+5: [1000,1000,1000,1000,1000,1000,7,3,2,2]
+8: [1,2,2,3,3,3,2,2,2,2]
+6: [1,3,7,7,1000,1000,9,3,2,2]
+9: [1,1,2,2,2,2,2,2,2,1]
+4: [1,3,7,7,1000,1000,9,3,2,2]
+7: [1,3,3,4,6,18,4,2,2,2]
 </pre>
 
-Built-in versions
------------------
+In this example run, we used three row actor processes to compute 10 rows. Each row actor computes every *n*th row, where *n* is the number of processes.
 
-It's interesting to build our own list-transformation functions, but in practice it's better to use the built-in implementations, which are **list::map**, **lists:takewhile**, and **lists:dropwhile**.
-
-List Comprehensions
-===================
-
-*List comprehensions* are a concise syntax for describing transformations of one or more lists.
-
-In the following examples, the variable **List** is defined as:
-
-    List = [1, 2, 3, 4, 5, 6, 7, 8].
-
-Example: double each element in a list:
-
-<pre>
-26&gt; <b>[N * 2 || N &lt;- List].</b>
-[2,4,6,8,10,12,14,16]
-</pre>
-
-Read this as "select elements *N* from *List*, and generate a new list by adding elements of the form *N*\*2".
-
-Example: get all elements greater than 4:
-
-<pre>
-27&gt; <b>[N || N &lt;- List, N &gt; 4].</b>
-[5,6,7,8]
-</pre>
-
-Here, we've specified an additional clause *N*\>4 to restrict which elements of *List* are used to generate the result list.
-
-Example: double all elements greater than 4:
-
-<pre>
-28&gt; <b>[N*2 || N &lt;- List, N &gt; 4].</b>
-[10,12,14,16]
-</pre>
-
-In this example, we both selected and transformed the input list.
+As you can see, the row results do not come back in sorted order, so some additional work is needed to put them in order.

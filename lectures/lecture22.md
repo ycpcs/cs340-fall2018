@@ -1,183 +1,149 @@
 ---
 layout: default
-title: "Lecture 22: Erlang"
+title: "Lecture 22: More Erlang"
 ---
 
-Example source code: [series.erl](series.erl), [sort.erl](sort.erl)
+Example code: [map.erl](map.erl), [filter.erl](filter.erl)
 
-Erlang
-======
+Anonymous Functions
+===================
 
-The origin of the name is both **Er**icsson **Lang**uage and the mathematician [Agner Erlang](http://en.wikipedia.org/wiki/Agner_Krarup_Erlang). It was invented by Joe Armstrong in 1986 for use in telephone exchange systems. The requirements of this application domain (fault-tolerance, concurrency) significantly influenced the language design.
+Many languages, including Clojure, Scala, and Ruby, have the ability to define "anonymous" blocks of code. An important use of such code blocks is to transform a series of values from a collection (e.g., passing an anonymous function to the Clojure **map** function.)
 
-Characteristics:
+Erlang supports anonymous functions. Because Erlang is dynamically-typed, an anonymous function can be assigned to a variable (Clojure allows this as well). You can think of an anonymous function as being a value, in much the same way that numbers, lists, and tuples are values in Erlang. Like all other values, they can be passed to functions and returned from functions.
 
--   functional: a variable may be assigned a value only once
--   dynamically-typed
--   concurrency implemented by lightweight processes (like threads, but no shared memory) which communicate by exchanging messages
+Example:
 
-Processes in Erlang are similar to actors in Scala.
+<pre>
+1&gt; <b>Add1 = fun(N) -&gt; N+1 end.</b>
+#Fun&lt;erl_eval.6.80247286&gt;
+2&gt; <b>Add1(3).</b>
+4
+</pre>
 
-Syntax, Data types
+Here, we defined a function of one parameter **N** that adds 1 to its parameter and returns the result.
+
+More interesting example:
+
+<pre>
+3&gt; <b>AddN = fun(N) -&gt; fun(X) -&gt; N+X end end.</b>
+#Fun&lt;erl_eval.6.80247286&gt;
+4&gt; <b>Add12 = AddN(12).</b>
+#Fun&lt;erl_eval.6.80247286&gt;
+5&gt; <b>Add12(11).</b>
+23
+</pre>
+
+In this example, the **AddN** function takes a parameter **N** and returns a function that adds **N** to its parameter **X**. By calling **AddN** with the argument value 12, we create a function that adds 12 to its parameter.
+
+The concept of returning a function from a function is called *currying*.
+
+Transforming Lists
 ==================
 
-Erlang is a descendant of Prolog, and the syntax is very similar. Like Prolog, Erlang supports pattern matching to extract data values from composite data values such as lists and tuples.
+Anonymous functions can be applied to lists to select or transform the values in the list.
 
-The syntax is very similar to Prolog:
+One way to transform a list is to *map* a function onto each element of the list, producing a list of transformed values as a result.
 
--   statements end with a period
--   variable names must begin with an upper-case letter
-
-The built-in data types in Erlang are similar to those supported by Prolog. They include
-
--   symbols
--   numbers
--   lists
--   tuples (fixed-size records)
--   bit strings
-
-Tuples
-------
-
-A tuple is a fixed-length series of values. Arbitrary record data structures can be created using tuples.
-
-An important convention in Erlang is to use a symbol as the first member of a tuple as a tag to indicate the type of data the tuple contains.
-
-For example:
+Here is a possible implementation of a map function:
 
 {% highlight erlang %}
-{ lineitem, {item, "Bananas"}, {quantity, 44} }
+-module(map).
+-export([map/2]).
+
+map(_, []) -> [];
+map(F, [First|Rest]) -> [F(First) | map(F, Rest)].
 {% endhighlight %}
 
-This is a tuple marked with the symbol (tag) **bananas**, with two nested tuples marked with the symbols **item** and **quantity**. This tuple might be part of a data structure used in an inventory-tracking system.
+The implementation is quite simple. The base case is an empty list, where the result is simply the empty list. In the recursive case, the function *F* is applied to the first element of the list, and prepended onto the list that results from recursively applying *F* to the rest of the list.
 
-We could assign this tuple to a variable:
-
-{% highlight erlang %}
-Item = { lineitem, {item, "Bananas"}, {quantity, 44} }.
-{% endhighlight %}
-
-Things get interesting when we use pattern matching to extract information from the tuple:
-
-{% highlight erlang %}
-{lineitem, {item, "Bananas"}, {quantity, HowMany}} = Item.
-{% endhighlight %}
-
-This statement assigns the quantity associated with the **Item** tuple to the variable **HowMany**. This is the same idea as unification in Prolog: Erlang will try to make the left hand side equivalent to the right hand side.  It is also reminscent of vector destructuring in Clojure.  Constant values such as symbols and strings must be exactly equal for the match to succeed. Variables will match whatever value they correspond to on the other side.
-
-Functions
-=========
-
-Functions in Erlang are specified in much the same way as inference rules in Prolog.
-
-Annoying detail
----------------
-
-Erlang has an interactive interpreter called **erl** in which you can enter Erlang statements and have them evaluated. However, you cannot define functions interactively. Instead, they must be defined in a separate source file (*module*) and compiled.
-
-Example function
-----------------
-
-Because Erlang is a functional language, all computations involving repetition must be done recursively. Example: computing the nth Fibonacci number in Erlang.
-
-Here is a module defined in a source file called **series.erl**:
-
-{% highlight erlang %}
--module(series).
--export([fib/1]).
-
-fib(0) -> 1;
-fib(1) -> 1;
-fib(N) -> fib(N-2) + fib(N-1).
-{% endhighlight %}
-
-To iteractively compile this module and execute the **fib** function in **erl**:
+Testing it on a list:
 
 <pre>
-4> <b>c(series).</b>
-{ok,fib}
-5> <b>series:fib(6).</b>
-13
+8&gt; <b>map:map(fun(N) -&gt; N*2 end, [1, 2, 3]).</b>
+[2,4,6]
 </pre>
 
-The built-in **c** function compiles a module whose name is specified as a symbol. Note that when an Erlang function is called, it must be prefixed with the name of the module in which it is defined. So, **series:fib** means to call a function called **fib** defined in a module called **series**.
-
-More efficient version
-----------------------
-
-As you may recall from CS 201, the naive recursive implementation of **fib** has exponential running time. We can compute it more efficiently by avoiding revisiting the same recursive subproblem multiple times.
-
-The idea is to use a tail-recursive implementation using an accumulator parameter. The base cases of the tail recursive helper function (**fibtailrecwork**) are the same as the original version. The recursive case's **Cur** parameter counts up from 2 to **N**, keeping track of the current Fibonacci number (**Accum**) and the previous Fibonacci number (**Prev**). Until **Cur** = **N**, recursive calls are made which compute the next Fibonacci number.
-
-Note that in the base cases, we use the special variable name **\_** to indicate parameters that aren't used. You can think of this as the "don't care" variable name.
-
-Here's the complete module:
+Note that the implementation of **map** above is not tail-recursive. Here is a tail-recursive version:
 
 {% highlight erlang %}
--module(series).
--export([fib/1, fibtailrec/1]).
+-module(map).
+-export([map/2]).
 
-fib(0) -> 1;
-fib(1) -> 1;
-fib(N) -> fib(N-2) + fib(N-1).
+mapwork(_, [], Accum) -> lists:reverse(Accum);
+mapwork(F, [First|Rest], Accum) -> mapwork(F, Rest, [F(First)|Accum]).
 
-fibtailrec(N) -> fibtailrecwork(N, 2, 1, 2).
-
-fibtailrecwork(0, _, _, _) -> 1;
-fibtailrecwork(1, _, _, _) -> 1;
-fibtailrecwork(N, N, _, Accum) -> Accum;
-fibtailrecwork(N, Cur, Prev, Accum) -> fibtailrecwork(N, Cur+1, Accum, Prev+Accum).
+map(F, L) -> mapwork(F, L, []).
 {% endhighlight %}
 
-Merge sort in Erlang
---------------------
+Because the accumulator builds the result list with the transformed elements in reverse order, we apply the built-in **lists:reverse** function before returning the final result.
 
-Here is merge sort in Erlang. It is similar to [merge sort in Prolog](lecture18.html), although simpler because functions in Erlang return values rather than making logical assertions.
-
-First, the **merge** function:
+Another useful list-transformation technique is filtering a list to retain or discard elements matching a specified predicate:
 
 {% highlight erlang %}
-merge([], Any) -> Any;
-merge(Any, []) -> Any;
-merge([X|RestL], [Y|RestR]) ->
+-module(filter).
+-export([retain/2, discard/2]).
+
+filterwork(_, [], _, Accum) -> lists:reverse(Accum);
+filterwork(F, [First|Rest], Keep, Accum) ->
+  Test = F(First),
   if
-    X<Y  -> [X | merge(RestL, [Y|RestR])];
-    true -> [Y | merge([X|RestL], RestR)]
+    (Test and Keep) or (not Test and not Keep) ->
+       filterwork(F, Rest, Keep, [First | Accum]);
+    true -> filterwork(F, Rest, Keep, Accum)
   end.
+
+retain(F, List) -> filterwork(F, List, true, []).
+
+discard(F, List) -> filterwork(F, List, false, []).
 {% endhighlight %}
 
-The base cases state that merging an empty list with any other list results in the other list.
-
-The recursive case uses an **if** expression to test which of the head elements of the two lists being merged is smaller, and then constructs a new list with the appropriate head element.
-
-Note that this merge function could be improved: it is not tail recursive (the construction of the result list happens after the recursive call to **merge** completes).
-
-Next, the **mergesort** function:
-
-{% highlight erlang %}
-mergesort([]) -> [];
-mergesort([A]) -> [A];
-mergesort(List) ->
-  N = length(List),
-  % Sublist containing the first N/2 elements.
-  Left = lists:sublist(List, N div 2),
-  % Sublist containing the remaining elements.
-  % Note: list elements are indexed starting at 1, not 0.
-  Right = lists:sublist(List, (N div 2) + 1, N - (N div 2)),
-  % Recursively sort left and right sublists.
-  LeftSorted = mergesort(Left),
-  RightSorted = mergesort(Right),
-  % Merge the results of sorting the left and right sublists.
-  merge(LeftSorted, RightSorted).
-{% endhighlight %}
-
-Again, this function is quite a bit simpler than the equivalent version in Prolog because it returns a value instead of making a logical assertion. Note that we can use a series of expressions separated by commas to define the recursive case, and the result of the last expression is used as the result of the function.
-
-Take a look at [sort.erl](sort.erl) to see the entire module.
-
-Example of calling the **mergesort** function in the **erl** interpreter:
+Examples of using these functions:
 
 <pre>
-40> <b>sort:mergesort([11, 86, 2, 69, 22, 39, 85, 57, 78, 76]).</b>
-[2,11,22,39,57,69,76,78,85,86]
+18&gt; <b>filter:retain(fun(N) -&gt; N &gt; 4 end, [1, 2, 3, 4, 5, 6, 7, 8]).</b>
+[5,6,7,8]
+19&gt; <b>filter:discard(fun(N) -&gt; N &gt; 4 end, [1, 2, 3, 4, 5, 6, 7, 8]).</b>
+[1,2,3,4]
 </pre>
+
+Built-in versions
+-----------------
+
+It's interesting to build our own list-transformation functions, but in practice it's better to use the built-in implementations, which are **list::map**, **lists:takewhile**, and **lists:dropwhile**.
+
+List Comprehensions
+===================
+
+*List comprehensions* are a concise syntax for describing transformations of one or more lists.
+
+In the following examples, the variable **List** is defined as:
+
+    List = [1, 2, 3, 4, 5, 6, 7, 8].
+
+Example: double each element in a list:
+
+<pre>
+26&gt; <b>[N * 2 || N &lt;- List].</b>
+[2,4,6,8,10,12,14,16]
+</pre>
+
+Read this as "select elements *N* from *List*, and generate a new list by adding elements of the form *N*\*2".
+
+Example: get all elements greater than 4:
+
+<pre>
+27&gt; <b>[N || N &lt;- List, N &gt; 4].</b>
+[5,6,7,8]
+</pre>
+
+Here, we've specified an additional clause *N*\>4 to restrict which elements of *List* are used to generate the result list.
+
+Example: double all elements greater than 4:
+
+<pre>
+28&gt; <b>[N*2 || N &lt;- List, N &gt; 4].</b>
+[10,12,14,16]
+</pre>
+
+In this example, we both selected and transformed the input list.
