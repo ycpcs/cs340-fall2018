@@ -33,6 +33,58 @@ Suggestion: you can use the built-in `repeat` function to generate a sequence wi
 
 produces a sequence with *n* copies of *val*.  Also note that using `conj` to add an element to a sequence returned by `repeat` does a prepend, as though the sequence were a list.
 
+## `my-and`
+
+This macro should take 0 or more arguments, which are expressions.  When used, it should evaluate the arguments in order.  If any argument evaluates as falsey (`false` or `nil`), then `false` should be returned, *without evaluating the remaining arguments*.  If all of the arguments evaluate as truthy, `true` should be returned.
+
+The behavior described above is not possible using a function, because a function application would evaluate all of the arguments eagerly.
+
+Restriction: your macro should not use the built-in `and` macro in its expansion.  Instead, use the `if` form.
+
+Because the macro takes a variable number of arguments, it should use the variable parameter list syntax.  Also, you will probably want to write a helper function to generate the expanded form of the macro, since for multiple arguments you will need to generate a nested `if` form.  For example, the application
+
+{% highlight clojure %}
+(my-and (foo) (bar) (baz))
+{% endhighlight %}
+
+could be expanded into the code
+
+{% highlight clojure %}
+(if (not (foo))
+  false
+  (if (not (bar))
+    false
+    (if (not (baz))
+      false
+      true)))
+{% endhighlight %}
+
+Example use:
+
+    => (defn ned [] (println "I'm Ned!") true)
+    #'cs340-lab15.core/ned
+    => (defn ted [] (println "I'm Ted!") false)
+    #'cs340-lab15.core/ted
+    => (my-and)
+    true
+    => (my-and (ned) (ned) (ned))
+    I'm Ned!
+    I'm Ned!
+    I'm Ned!
+    true
+    => (my-and (ned) (ned) (ned) (ted))
+    I'm Ned!
+    I'm Ned!
+    I'm Ned!
+    I'm Ted!
+    false
+    => (my-and (ned) (ted) (ned) (ted))
+    I'm Ned!
+    I'm Ted!
+    false
+
+
+<!--
 ## `unless`
 
 This macro is similar to the **if** special form.  Its syntax is
@@ -61,3 +113,4 @@ Example use:
     => (unless (< 4 5) (ned) (ted))
     I'm Ted!
     55
+-->
