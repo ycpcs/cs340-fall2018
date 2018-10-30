@@ -3,7 +3,7 @@ layout: default
 title: "Assignment 5: Boolean Function Synthesis"
 ---
 
-Due: **Wednesday, Nov 8th** by 11:59 PM
+Due: **Tuesday, Nov 20th** by 11:59 PM
 
 Getting Started
 ===============
@@ -17,7 +17,7 @@ Boolean Functions
 
 A *boolean operator* operates on one or more boolean values (true/false) to produce a boolean result. A binary boolean operator has two boolean operands.
 
-We can describe a binary boolean operator using a *truth table*, which shows the result of the operator for each of the four possible combinations of operator values. For example, here is the truth table for the **and** operator, denoted **\^**:
+We can describe a binary boolean operator using a *truth table*, which shows the result of the operator for each of the four possible combinations of operator values. For example, here is the truth table for the **and** operator, denoted **^**:
 
 L | R | L ^ R
 --|---|------
@@ -27,7 +27,7 @@ f | t | f
 f | f | f
 
 
-For operands *L* and *R*, *L* **\^** *R* is true when *L* and *R* are both true, false otherwise. Here are the truth tables for four additional binary boolean operators, **or** (denoted **+**), **nand**, **nor**, and **xor**.
+For operands *L* and *R*, *L* **^** *R* is true when *L* and *R* are both true, false otherwise. Here are the truth tables for four additional binary boolean operators, **or** (denoted **+**), **nand**, **nor**, and **xor**.
 
 L | R | L + R
 --|---|------
@@ -57,7 +57,7 @@ t | f | t
 f | t | t
 f | f | f
 
-We can think of boolean operators as being mathematical functions with two parameters. By combining two boolean operators with two operands, we can create a boolean function with three operands. For example, *A* **\^** (*B* **+** *C*) is a boolean function with the following truth table:
+We can think of boolean operators as being mathematical functions with two parameters. By combining two boolean operators with two operands, we can create a boolean function with three operands. For example, *A* **^** (*B* **+** *C*) is a boolean function with the following truth table:
 
 A | B | C | A ^ (B + C)
 --|---|---|------------
