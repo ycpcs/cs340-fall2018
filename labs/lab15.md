@@ -59,6 +59,15 @@ could be expanded into the code
       true)))
 {% endhighlight %}
 
+Your `my-and` macro could look something like:
+
+{% highlight clojure %}
+(defmacro my-and [& args]
+  (my-and-help args))
+{% endhighlight %}
+
+Hint: it may be helpful to use syntax quoting in `my-and-help`.
+
 Example use:
 
     => (defn ned [] (println "I'm Ned!") true)
