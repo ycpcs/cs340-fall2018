@@ -13,4 +13,6 @@ This page links to practice exams and practice problems.
 
 [Exam 2, Fall 2016 (handout)](cs340-fall2016-exam02.pdf), [Exam 2, Fall 2016 (zip file)](cs340-fall2016-exam02.zip) (can be imported into Eclipse)
 
+> [Solution](cs340-fall2016-exam02-solution.zip)
+
 [Final Exam, Fall 2016](cs340-fall2016-final.pdf), [cs340-fall2016-final.zip](cs340-fall2016-final.zip) (programming questions)
