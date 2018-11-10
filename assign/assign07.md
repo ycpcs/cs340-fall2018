@@ -1,11 +1,9 @@
 ---
 layout: default
-title: "Assignment 7: Abstract Syntax Trees"
+title: "Assignment 7: Code Generation"
 ---
 
-**Due**: Tuesday, Dec 5th by 11:59 PM
-
-*Update 12/1*: Added a hint about implementing `flatten-statement-list`
+**Due**: Tuesday, Dec 12th by 11:59 PM
 
 # Getting Started
 
@@ -13,150 +11,246 @@ Download [cs340-assign07.zip](cs340-assign07.zip).
 
 If you are using Counterclockwise under Eclipse, you can import the zipfile as an Eclipse project.
 
-You should copy your `parser2.clj` file from [Assignment 6](assign06.html) into the `src/minilang` directory.
+You should copy your `parser2.clj` and `astbuilder.clj` files from [Assignment 7](assign07.html) into the `src/minilang` directory.  <!-- Note that you will need to make a few changes to them as described below. -->
 
-# Your task
+<!--
+*Update 12/6*: The original assignment skeleton included the wrong version of `prettyprint.clj`.  Please download the correct one and copy it into the `src/minilang` folder:
 
-Your task is to transform the parse trees produced by your parser into [abstract syntax trees](../lectures/lecture06.html).  Do this by implementing the **build-ast** function in `astbuilder.clj`.
+> [prettyprint.clj](prettyprint.clj)
+-->
 
-There are three things that your **build-ast** function should do:
+# Your Task
 
-* All nonterminal nodes that have a single child should be eliminated.  The only exception is the **:unit** node at the root of the parse tree, which should be preserved.
-* **:statement\_list** nodes should be simplified so that all of the statements are direct children of the statement list node.
-* All terminal nodes should be eliminated, unless they contain information that is important.  For example, "punctuation" nodes such as **:lparen**, **:semicolon** should be eliminated, but **:identifier**, **:int\_literal**, and **str\_literal** nodes should be preserved
+The goal of this project is to write a code generator that can take the ASTs produced from parse trees of minilang programs and generate a sequence of [MiniVM](https://github.com/daveho/MiniVM) instructions which carry out the computation specified by the program.
 
-# Hints
+## Augmented ASTs
 
-In general, building an AST will involve recursively converting child parse trees into ASTs.  Of course, there will be some base cases where a parse node is already in the form of an AST.  (For example, identifiers, int literals, and string literals can be considered to already be ASTs.)
+This assignment introduces *augmented* ASTs.  An augmented AST has the same form as the basic ASTs produced by your `build-ast` function, but some of the nodes will have *properties*.  A node's properties can be used to store extra information about the node: specifically, information that will be useful during code generation.
 
-You will need to think carefully about the structure of the parse nodes you will encounter, and how to transform them into equivalent AST nodes.
+The `analyzer.clj` module is provided to transform a plain AST into an augmented AST: the `analyzer/augment-ast` function does the transformation.  The analyzer adds three kinds of properties to the AST:
 
-There are several helper functions that you may find useful.
+* `:statement_list` nodes will have an `:nlocals` property, specifying how many local variables are used within the statement list (and any nested statement lists in **if** or **while** statements)
+* `:identifier` nodes will have a `:regnum` property, specifying an integer which uniquely identifies the variable named by the identifier
+* the last `:expression_statement`, `:var_decl_statement`, `:if_statement`, or `:while_statement` node in the top-level statement list will have a `:last` property whose value is `true`
 
-The **node/make-node** function provides a convenient way to create a new AST node.  It takes a symbol and a sequence of child nodes as parameters.
+The `:regnum` property is very useful for generating code for assignments and variable references, since it tells you which MiniVM local variable corresponds to a program variable.
 
-The **node/children** function takes a parse node as a parameter and returns a vector containing the children of the parse node.  (It will throw an exception if passed a terminal node.)
+The `:last` property is useful to allow the code generator to emit code to print the result of the last statement in the top-level statement list: see "Code generation" below.
 
-The **node/get-child** function takes a parse node and an integer *n*, and returns the *n*th child of the parse node (with 0 being the index of the first child).
+You will probably not need to use the `:nlocals` property for anything.
 
-The **recur-on-children** function takes a parse node as a parameter, and returns an AST node whose symbol is the same as the parse node, and whose children are ASTs constructed from the children of the parse node.  (Hint: this should be useful for nodes representing binary operators.)
+The `pp/pretty-print` function has been updated to print out property values.  For example, when the minilang program
 
-**:primary** nodes representing parenthesized expressions will require special handling: specifically, the *second* child should be recursively turned into an AST, rather than the first child (which is the correct approach for the other kinds of primary expressions.)
+    var a; a := 4 * 5; a;
 
-Implementing the `flatten-statement-list` requires accumulating all of the reachable `:statement` nodes, converting them to a sequence of ASTs, and creating a `:statement_list` AST with the `:statement` ASTs as children.  As a way of getting started, here is an implementation of `flatten-statement-list` that correctly handles the first statement:
-
-{% highlight clojure %}
-(defn flatten-statement-list [node]
-  (let [stmt (node/get-child node 0)
-        stmt-ast (build-ast stmt)]
-    (node/make-node :statement_list [stmt-ast])))
-{% endhighlight %}
-
-The full version of `flatten-statement-list` should use a `loop/recur` construct to recursively find all of the statements and convert them to ASTs.
-
-# Testing
-
-You can test your **build-ast** function by changing the definition of the **testprog** variable (defined towards the bottom of `astbuilder.clj`.  The value of this variable is parsed, an AST is constructed from the resulting parse tree, **build-ast** is called to convert the parse tree to an AST, and the AST is assigned to the variable **prog**.
-
-In a REPL, you can evaluate
-
-{% highlight clojure %}
-(pp/pretty-print ast)
-{% endhighlight %}
-
-to print the AST.
-
-Here are some example inputs and the expected ASTs:
-
-Example input:
-
-    var a; a := 3*4;
-
-Expected AST:
+is converted to an augmented AST and pretty printed, the output is
 
     :unit
-    +--:statement_list
-       +--:var_decl_statement
+    +--:statement_list :nlocals=1
+       +--:var_decl_statement :regnum=0
        |  +--:identifier["a"]
        +--:expression_statement
-          +--:op_assign
-             +--:identifier["a"]
-             +--:op_mul
-                +--:int_literal["3"]
-                +--:int_literal["4"]
+       |  +--:op_assign
+       |     +--:identifier["a"] :regnum=0
+       |     +--:op_mul
+       |        +--:int_literal["4"]
+       |        +--:int_literal["5"]
+       +--:expression_statement :last=true
+          +--:identifier["a"] :regnum=0
 
-Example input:
+Here is an example with multiple variables:
 
-    a * (b + 3);
+    var a; var b; var c; b := 6; c := 3; a := b*c;
 
-Expected AST:
+This produces the following augmented AST:
 
     :unit
-    +--:statement_list
+    +--:statement_list :nlocals=3
+       +--:var_decl_statement :regnum=0
+       |  +--:identifier["a"]
+       +--:var_decl_statement :regnum=1
+       |  +--:identifier["b"]
+       +--:var_decl_statement :regnum=2
+       |  +--:identifier["c"]
        +--:expression_statement
-          +--:op_mul
-             +--:identifier["a"]
-             +--:op_plus
-                +--:identifier["b"]
-                +--:int_literal["3"]
+       |  +--:op_assign
+       |     +--:identifier["b"] :regnum=1
+       |     +--:int_literal["6"]
+       +--:expression_statement
+       |  +--:op_assign
+       |     +--:identifier["c"] :regnum=2
+       |     +--:int_literal["3"]
+       +--:expression_statement :last=true
+          +--:op_assign
+             +--:identifier["a"] :regnum=0
+             +--:op_mul
+                +--:identifier["b"] :regnum=1
+                +--:identifier["c"] :regnum=2
 
-Example input:
+Notice that each variable is assigned a different `:regnum` property value.
 
-    while (a <= b) { c; d*e*4; }
+## Code generation
 
-Expected AST:
+The `generate-code` function takes an augmented AST as a parameter, and should print MiniVM instructions which execute the computation specified by the AST.  Note that `generate-code` does not need to return any specific value: it should just print the MiniVM instructions using the `println` function.
 
-    :unit
-    +--:statement_list
-       +--:while_statement
-          +--:op_lte
-          |  +--:identifier["a"]
-          |  +--:identifier["b"]
-          +--:statement_list
-             +--:expression_statement
-             |  +--:identifier["c"]
-             +--:expression_statement
-                +--:op_mul
-                   +--:op_mul
-                   |  +--:identifier["d"]
-                   |  +--:identifier["e"]
-                   +--:int_literal["4"]
+Here is the basic idea:
 
-Example input:
+* For statement lists, recursively generate code for each child statement
+* Nothing is required for var decl statements
+* For expression statements, recursively generate code for the expression, then either pop the result value off by emitting a `pop` instruction (if the expression statement does not have the `:last` property), or print it by emitting `syscall $println` followed by `pop` (if the expression statement does have the `:last` property)
+* For binary operators other than `:op_assign`, recursively generate code for the two child sub-expressions, and then emit an appropriate arithmetic instruction (e.g., `add`, `sub`, `mul`, etc.)
+* For `:op_assign`, recursively emit code for the right-hand-side expression, the emit an `stlocal` instruction to store the result in a local variable, using the value of the `:regnum` property of the identifier to know which MiniVM local variable to store into; also see the note below in the "Stack management" section
+* For `:int_literal` nodes, emit an `ldc_i` instruction to load the constant integer onto the operand stack
+* For `:identifier` nodes which appear in expressions, emit an `ldlocal` instruction, using the value of the `:regnum` property to know which MiniVM local variable to load from
 
-    if (x != 4) { y := z*3; }
+The `compile-unit` function is provided for you: it takes a complete augmented AST (with a `:unit` node as its root) and generates a complete MiniVM program for you.  This function is necessary because some prologue and epilogue code is required to form a complete MiniVM program: the prologue creates an initial stack frame, and the epilogue causes the MiniVM program to exit cleanly.
 
-Expected AST:
+When you test your code generator, you should do so by using the `compile-unit` function, e.g.
 
-    :unit
-    +--:statement_list
-       +--:if_statement
-          +--:op_neq
-          |  +--:identifier["x"]
-          |  +--:int_literal["4"]
-          +--:statement_list
-             +--:expression_statement
-                +--:op_assign
-                   +--:identifier["y"]
-                   +--:op_mul
-                      +--:identifier["z"]
-                      +--:int_literal["3"]
+{% highlight clojure %}
+(compile-unit aast)
+{% endhighlight %}
+
+to generate code for the `testprog` test program at the bottom of `codegen.clj`.  I suggest running this in a REPL.
+
+To try out your generated code, copy the generated instructions and save them to a file &mdash; e.g., "prog.mvm" &mdash; then execute it interactively with the `MiniVM.rb` program, e.g.:
+
+    ./MiniVM.rb -x -i prog.mvm
+
+## Stack management
+
+You will need to think carefully about how to manage the MiniVM operand stack.  The basic idea is that the code generated for each statement should not cause the operand stack either to grow or shrink.
+
+For `:op_assign` expressions, the value of the right-hand-side expression should be left on the stack.  You can use the `dup` MiniVM instruction to make a copy of it just before you use `stlocal` to store it in a local variable: this ensures that a copy is left on the stack after the value is stored.
+
+## Hints
+
+The [MiniVM test programs](https://github.com/daveho/MiniVM/tree/master/t), [MiniVM documentation](https://github.com/daveho/MiniVM/blob/master/Documentation.md), and [MiniVM instruction reference](https://github.com/daveho/MiniVM/blob/master/InstructionSet.md) will probably be useful.
+
+The functions in the `node.clj` module will be useful for working with augmented AST nodes:
+
+* `node/has-prop?` checks whether a node has a particular property
+* `node/get-prop` retrieves the value of a property from a node
+* `node/children` retrieves the children of a node
+* `node/num-children` returns a count of how many children a node has
+* `node/get-child` returns a specified child (0 for the first child, etc.)
+
+Each of these functions has a detailed comment explaining how to use it.
+
+You can check the label of a node by applying the `:symbol` property to the node, e.g.
+
+{% highlight clojure %}
+(:symbol node)
+{% endhighlight %}
+
+would return `:expression_statement` if `node` is an expression statement node.
+
+When printing, you can use the `str` function to concatenate multiple values into a single string.  For example,
+
+{% highlight clojure %}
+(println (str "\tldlocal " regnum))
+{% endhighlight %}
+
+would emit the instruction
+
+    ldlocal 4
+
+assuming that `regnum` has the value 4.
+
+You can use the `do` construct to execute several Clojure expressions.  This is useful, for example, if you need to recursively generate code and then print an instruction, e.g.:
+
+{% highlight clojure %}
+(do
+  (generate-code (node/get-child node 0))
+  (generate-code (node/get-child node 1))
+  (println "\tadd"))
+{% endhighlight %}
+
+## Examples
+
+Here are some tests programs and example outputs.
+
+For the following minilang program:
+
+    var a; a := 4 * 5; a;
+
+A possible MiniVM program is
+
+{% highlight asm %}
+main:
+    enter 0, 1
+    ldc_i 4
+    ldc_i 5
+    mul
+    dup
+    stlocal 0
+    pop
+    ldlocal 0
+    syscall $println
+    pop
+    ldc_i 0
+    ret
+{% endhighlight %}
+
+For the following minilang program:
+
+    var a; var b; var c; b := 6; c := 3; a := b*c;
+
+A possible MiniVM program is
+
+{% highlight asm %}
+main:
+    enter 0, 3
+    ldc_i 6
+    dup
+    stlocal 1
+    pop
+    ldc_i 3
+    dup
+    stlocal 2
+    pop
+    ldlocal 1
+    ldlocal 2
+    mul
+    dup
+    stlocal 0
+    syscall $println
+    pop
+    ldc_i 0
+    ret
+{% endhighlight %}
 
 # Grading
 
-Your assignment grade will be determined as follows:
+* Evaluation of simple expressions with just constants: 20%
+* Evaluation of complex expressions with just constants: 20%
+* Assignments of constants to variables: 15%
+* Evaluating variables in expressions: 15%
+* Evaluation of expressions with constants and variables: 20%
+* Printing the value of the last expression using `syscall $println`: 10%
 
-* Flattening of statement lists: 40%
-* Removing unnecessary nonterminal nodes: 15%
-* Removing unnecessary terminal nodes: 15%
-* Binary expressions: 15%
-* If and while statements: 15%
+## Insane extra credit
+
+For extra credit (up to 50 points), implement code generation for `:if_statement` and `:while_statement` AST nodes.
+
+See [Implementing Control Flow](assign07controlflow.html) for more information.
+
+This is actually not particularly difficult, and allows you to compile and run rather sophisticated programs.  And, imagine how cool it will be to mention that you implemented a compiler for a Turing-complete language with full support for variables and arbitrary control flow targeting a stack-based virtual machine in a functional language at the next party you go to.
+
+<div class="callout">
+<b>Important</b>: If you decide to do the extra credit, the code you submit must be <i>entirely your own work</i>, meaning that you should not talk about the extra credit with anyone else.
+</div>
 
 # Submitting
 
-When you are done, submit the assignment to the Marmoset server using either of the methods below.
+When you are done, submit the lab to the Marmoset server using either of the methods below.
 
 > **Important**: after you submit, log into the submission server and verify that the correct files were uploaded. You are responsible for ensuring that you upload the correct files. I may assign a grade of 0 for an incorrectly submitted assignment.
+
+From Eclipse
+------------
+
+If you have the [Simple Marmoset Uploader Plugin](../resources/index.html) installed, select the project (**cs340-assign07**) in the package explorer and then press the blue up arrow button in the toolbar. Enter your Marmoset username and password when prompted.
 
 From a web browser
 ------------------

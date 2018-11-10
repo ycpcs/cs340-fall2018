@@ -1,25 +1,33 @@
 ---
 layout: default
-title: "Assignment 6: Parsing"
+title: "Assignment 6: Abstract Syntax Trees"
 ---
 
-**Due**: Friday, Nov 17th by 11:59 PM
+**Due**: Tuesday, Dec 4th by 11:59 PM
 
 # Getting Started
 
 Download [cs340-assign06.zip](cs340-assign06.zip).
 
-If you are using Counterclockwise under Eclipse, you can import the zipfile as an Eclipse project.  After importing it, you should see a project called **cs340-assign06** in your workspace.
+If you are using Counterclockwise under Eclipse, you can import the zipfile as an Eclipse project.
 
-# Your Task
+# Minilang
 
-The source file `parser2.clj` implements a recursive descent parser for the following context-free grammar:
+This assignment and the [next assignment](assign07.html) both involve a simple programming language called Minilang.
+
+Minilang has the following grammar:
 
 > *unit* → *statement\_list*
 >
 > *statement\_list* → *statement* *statement\_list* \| *statement*
 >
-> *statement* → *var\_decl\_statement* \| *expression\_statement*
+> *statement* → *var\_decl\_statement*
+>
+> *statement* → *expression\_statement*
+>
+> *statement* → *if\_statement*
+>
+> *statement* →  *while\_statement*
 >
 > *var\_decl\_statement* → **var** **identifier** **;**
 >
@@ -28,327 +36,237 @@ The source file `parser2.clj` implements a recursive descent parser for the foll
 > *expression* → see below
 >
 > *primary* → **identifier** \| **int\_literal** \| **str\_literal**
-
-The names and symbols in **bold** are terminal symbols (tokens), while the names in *italics* are nonterminal symbols.
-
-Expressions are infix expressions with the := (assignment), = (equality), !=, \<, \>, \<=, \>=, +, -, \*, /, and ^ (exponentiation) operators.  They are parsed by [precedence climbing](../lectures/lecture06.html).
-
-Your task is to modify the parser to support the following productions:
-
+>
 > *primary* → **(** *expression* **)**
->
-> *statement* → *if\_statement*
->
-> *statement* →  *while\_statement*
 >
 > *if\_statement* →  **if** **(** *expression* **)** **{** *statement\_list* **}**
 >
 > *while\_statement* → **while** **(** *expression* **)** **{** *statement\_list* **}**
 
-Supporting the first production (allowing parenthesized subexpressions) will require modifying the **parse-primary** function.  Supporting the other two productions will involve modifying the **parse-statement** function.
+The names and symbols in **bold** are terminal symbols (tokens), while the names in *italics* are nonterminal symbols.
 
-## Recursive descent parsing in a functional language
+Expressions are infix expressions with the := (assignment), = (equality), !=, \<, \>, \<=, \>=, +, -, \*, /, and ^ (exponentiation) operators.  They are parsed by [precedence climbing](../lectures/lecture06.html).
 
-Implementing a recursive descent parser in a functional language is not really that hard.  However, there is one fundamental issue that requires some thought: the lexical analyzer (lexer) cannot implement *stateful* operations.
+# Your task
 
-In our previous work with parsing (such as [Assignment 3](assign03.html)), we assumed that the lexer's **next()** method consumed a token, *removing it from the input sequence*, such that a subsequent call to **next()** would return a different token.  Because **next()** modified the lexer's internal state, it is a "stateful" operation.  When writing programs in a functional language, where destructive modifications of data are not possible, our operations can't be stateful.
+Your task is to transform the parse trees produced by the Minilang parser into [abstract syntax trees](../lectures/lecture06.html).  Do this by implementing the **build-ast** function in `astbuilder.clj`.
 
-From the standpoint of implementing a recursive descent parser, the issue is that each parse function needs to consume some number of tokens from the input sequence.  Thus, each time a parse function is called, we need to know how many tokens were consumed, and which tokens remain.  This turns out to be pretty easy if we have each parse function return *two* values: a parse node, and a sequence containing the remaining tokens.  We can have the parse functions return two values by having them return a *record* containing a parse node and the sequence containing the remaining tokens.
+There are three things that your **build-ast** function should do:
 
-## Record data types
+* All nonterminal nodes that have a single child should be eliminated.  The only exception is the **:unit** node at the root of the parse tree, which should be preserved.
+* **:statement\_list** nodes should be simplified so that all of the statements are direct children of the statement list node.
+* All terminal nodes should be eliminated, unless they contain information that is important.  For example, "punctuation" nodes such as **:lparen**, **:semicolon** should be eliminated, but **:identifier**, **:int\_literal**, and **:str\_literal** nodes should be preserved
 
-Record types in Clojure are very much like struct data types in C, except that record instances are immutable.
+By implementing the transformation from parse trees to ASTs, unnecessary nodes are eliminated and the structure of the tree is simplified.  For example, consider the following Minilang program:
 
-The parser defines two record types:
+    var a; var b; a := 4; b := 5; a + b * 3;
 
-{% highlight clojure %}
-; Result of expanding a single right-hand-side symbol:
-; A single parse node, and a sequence containing the remaining
-; input tokens.
-(defrecord SingleParseResult [node tokens])
-
-; Result of partially or completely applying a production:
-; A sequence of 0 or more parse nodes, and a sequence containing
-; the remaining input tokens.
-(defrecord ParseResult [nodes tokens])
-{% endhighlight %}
-
-The `node` module defines one additional record type, which is used to represent parse tree nodes (as well as other kinds of nodes in future assignments):
-
-{% highlight clojure %}
-; Record for parse tree, AST, and augmented AST nodes.
-;
-; symbol indicates the (terminal or nonterminal) symbol.
-;
-; value is the "value" of the node, which for terminal nodes
-; is the lexeme of the token, and for nonterminal nodes
-; is the list of child nodes.
-;
-; props is a map containing property values; these are used
-; in the augmented AST for things like register numbers for
-; variables.
-;
-(defrecord Node [symbol value props])
-{% endhighlight %}
-
-Creating an instance of a record type is done by using the name of the type as a constructor function.  For example, here is the definition of the **make-node** function in the `node` module:
-
-{% highlight clojure %}
-; Make a node without any properties.
-;
-; Parameters:
-;   symbol - the symbol (keyword value) used to label the node
-;   value  - the value of the node: for parent nodes, it should
-;            be a sequence (list or vector) containing the child
-;            nodes
-;
-; Returns: the node
-;
-(defn make-node [symbol value]
-  (Node. symbol value {}))
-{% endhighlight %}
-
-This function creates a **Node** record with the specified symbol and value, and with an empty properties map.
-
-Accessing a field of a record is done by applying a keyword naming the field that you want to retrieve as a function on the record instance.  For exmaple, if **n** is a **Node** record instance, then the expression
-
-{% highlight clojure %}
-(:symbol n)
-{% endhighlight %}
-
-would retrieve the value of **n**'s **symbol** field.
-
-## Tokens, Parse functions
-
-The parser takes its inputs as a sequence of tokens.  Each token is a two-element vector, where the first element is the token's lexeme, and the second element is the token's symbol, represented as a Clojure keyword value.  Here are the various types of tokens that the lexer produces:
-
-> Symbol | Meaning
-> ------ | -------
-> **:var** | **var** keyword
-> **:func** | **func** keyword
-> **:if** | **if** keyword
-> **:while** | **while** keyword
-> **:identifier** | an identifier
-> **:str\_literal** | a string literal
-> **:int\_literal** | an integer literal
-> **:op\_assign** | the assignment operator, **:=**
-> **:op\_plus** | the addition operator, **+**
-> **:op\_minus** | the subtraction operator, **-**
-> **:op\_mul** | the multiplication operator, <b>*</b>
-> **:op\_div** | the division operator, **/**
-> **:op\_exp** | the exponentiation operator, **^**
-> **:op\_lte** | less than or equal to, **\<=**
-> **:op\_lt** | less than, **\<**
-> **:op\_gte** | greater than or equal to, **\>=**
-> **:op\_gt** | greater than, **\>**
-> **:op\_eq** | equal to, **=**
-> **:op\_neq** | not equal to, **!=**
-> **:semicolon** | semicolon, **;**
-> **:lparen** | left parenthesis, **(**
-> **:rparen** | right parenthesis, **)**
-> **:lbrace** | left brace, **{**
-> **:rbrace** | right brace, **}**
-
-Parse functions in the parser take a sequence of tokens and return a **SingleParseResult** record containing a **Node** (a parse tree representing the result of the parse), and a sequence containing the remaining input tokens.
-
-## Symbol application functions
-
-The parser uses *symbol application functions* to make progress.  Each symbol application function applies a single symbol (terminal or nonterminal) on the right-hand side of a production.  All of the parse functions are symbol application functions.  The **expect** function creates a symbol application function which consumes a particular terminal symbol.
-
-The parser has some helper functions for applying productions: **do-production**, **apply-production**, and **complete-production**.
-
-The **do-production** function is the easiest of the three helpers: it applies a complete production and returns a **SingleParseResult**.  For example, here is how the **parse-unit** function is implemented:
-
-{% highlight clojure %}
-(defn parse-unit [token-seq]
-  ; unit -> ^ statement_list
-  (do-production :unit [parse-statement-list] token-seq))
-{% endhighlight %}
-
-If the right-hand side of a production has one or more terminal symbols, then the **expect** function can be used to return a symbol application function for consuming a particular type of terminal symbol (token).  For example, here is the implementation of the **parse-var-decl-statement** function:
-
-{% highlight clojure %}
-(defn parse-var-decl-statement [token-seq]
-  ; var_decl_statement -> ^ var identifier ;
-  (do-production :var_decl_statement
-                 [(expect :var) (expect :identifier) (expect :semicolon)]
-                 token-seq))
-{% endhighlight %}
-
-The only drawback to **do-production** is that it requires that you apply a complete production.  If you are only going to apply part of a production (consuming only some of the symbols on the right-hand side of a production), then you can use the **apply-production** function.  It takes a **ParseResult** and a list of symbol application functions, and returns an extended **ParseResult** created by applying the specified symbol application functions.  The **complete-production** function takes a nonterminal symbol (keyword) and a **ParseResult**, and returns a **SingleParseResult** containing a single parse node with all parse nodes in the **ParseResult**.  The **apply-production** and **complete-production** functions can be used together to apply a production in stages.  You can see an example of this in **parse-statement-list**.  (You will mostly likely not need to use **apply-production** or **complete-production**, but understanding how they work will be helpful in understanding how the parser works.)
-
-## Testing
-
-A good way to test your work (as you modify the parser) is to print the parse trees that are created as a result of parsing.  The **pp/pretty-print** function takes a **Node** (the root of the parse tree) and prints out a text representation of the parse tree.
-
-In `parser2.clj` there is a "Testing" section at the bottom of the file.  If you uncomment the two lines at the bottom of the file (defining variables called **testprog** and **prog**), when you load the parser it will do a parse of a test input (**testprog**), saving the resulting parse tree in **prog**.  So, after loading the module, evaluating
-
-{% highlight clojure %}
-(pp/pretty-print prog)
-{% endhighlight %}
-
-in a REPL will produce the following output:
+As a result of parsing this program, the parser produces the following parse tree:
 
     :unit
     +--:statement_list
        +--:statement
        |  +--:var_decl_statement
-       |     +--:var["var"]
-       |     +--:identifier["a"]
-       |     +--:semicolon[";"]
+       |     +--:var["var"] :lnum=1 :cnum=1
+       |     +--:identifier["a"] :lnum=1 :cnum=5
+       |     +--:semicolon[";"] :lnum=1 :cnum=6
        +--:statement_list
           +--:statement
           |  +--:var_decl_statement
-          |     +--:var["var"]
-          |     +--:identifier["b"]
-          |     +--:semicolon[";"]
+          |     +--:var["var"] :lnum=1 :cnum=8
+          |     +--:identifier["b"] :lnum=1 :cnum=12
+          |     +--:semicolon[";"] :lnum=1 :cnum=13
           +--:statement_list
              +--:statement
              |  +--:expression_statement
              |     +--:op_assign
              |     |  +--:primary
-             |     |  |  +--:identifier["a"]
+             |     |  |  +--:identifier["a"] :lnum=1 :cnum=15
              |     |  +--:primary
-             |     |     +--:int_literal["5"]
-             |     +--:semicolon[";"]
+             |     |     +--:int_literal["4"] :lnum=1 :cnum=20
+             |     +--:semicolon[";"] :lnum=1 :cnum=21
              +--:statement_list
                 +--:statement
-                   +--:expression_statement
-                      +--:op_assign
-                      |  +--:primary
-                      |  |  +--:identifier["b"]
-                      |  +--:op_div
-                      |     +--:primary
-                      |     |  +--:identifier["a"]
-                      |     +--:op_exp
-                      |        +--:primary
-                      |        |  +--:identifier["a"]
-                      |        +--:op_exp
-                      |           +--:primary
-                      |           |  +--:int_literal["4"]
-                      |           +--:primary
-                      |              +--:int_literal["5"]
-                      +--:semicolon[";"]
+                |  +--:expression_statement
+                |     +--:op_assign
+                |     |  +--:primary
+                |     |  |  +--:identifier["b"] :lnum=1 :cnum=23
+                |     |  +--:primary
+                |     |     +--:int_literal["5"] :lnum=1 :cnum=28
+                |     +--:semicolon[";"] :lnum=1 :cnum=29
+                +--:statement_list
+                   +--:statement
+                      +--:expression_statement
+                         +--:op_plus
+                         |  +--:primary
+                         |  |  +--:identifier["a"] :lnum=1 :cnum=31
+                         |  +--:op_mul
+                         |     +--:primary
+                         |     |  +--:identifier["b"] :lnum=1 :cnum=35
+                         |     +--:primary
+                         |        +--:int_literal["3"] :lnum=1 :cnum=39
+                         +--:semicolon[";"] :lnum=1 :cnum=40
 
-This parse tree corresponds to the input
+The AST builder transforms the parse tree into the following AST:
 
-    var a; var b; a := 5; b := a / a^4^5;
+    :unit
+    +--:statement_list
+       +--:var_decl_statement
+       |  +--:identifier["a"] :lnum=1 :cnum=5
+       +--:var_decl_statement
+       |  +--:identifier["b"] :lnum=1 :cnum=12
+       +--:expression_statement
+       |  +--:op_assign
+       |     +--:identifier["a"] :lnum=1 :cnum=15
+       |     +--:int_literal["4"] :lnum=1 :cnum=20
+       +--:expression_statement
+       |  +--:op_assign
+       |     +--:identifier["b"] :lnum=1 :cnum=23
+       |     +--:int_literal["5"] :lnum=1 :cnum=28
+       +--:expression_statement
+          +--:op_plus
+             +--:identifier["a"] :lnum=1 :cnum=31
+             +--:op_mul
+                +--:identifier["b"] :lnum=1 :cnum=35
+                +--:int_literal["3"] :lnum=1 :cnum=39
 
-As you work on the parser, you can modify **testprog** to test other inputs to ensure they parse correctly.
+# Hints
 
-## Example inputs and parse trees
+In general, building an AST will involve recursively converting child parse trees into ASTs.  Of course, there will be some base cases where a parse node is already in the form of an AST.  (For example, identifiers, int literals, and string literals can be considered to already be ASTs.)
 
-Here are some example inputs you can try, along with their expected parse trees.  (Copy the example inputs into the contents of the string assigned to **testprog**.)
+You will need to think carefully about the structure of the parse nodes you will encounter, and how to transform them into equivalent AST nodes.
+
+There are several helper functions that you may find useful.
+
+The **node/make-node** function provides a convenient way to create a new AST node.  It takes a symbol and a sequence of child nodes as parameters.
+
+The **node/children** function takes a parse node as a parameter and returns a vector containing the children of the parse node.  (It will throw an exception if passed a terminal node.)
+
+The **node/get-child** function takes a parse node and an integer *n*, and returns the *n*th child of the parse node (with 0 being the index of the first child).
+
+The **recur-on-children** function takes a parse node as a parameter, and returns an AST node whose symbol is the same as the parse node, and whose children are ASTs constructed from the children of the parse node.  (Hint: this should be useful for nodes representing binary operators.)
+
+**:primary** nodes representing parenthesized expressions will require special handling: specifically, the *second* child should be recursively turned into an AST, rather than the first child (which is the correct approach for the other kinds of primary expressions.)
+
+Implementing the `flatten-statement-list` requires accumulating all of the reachable `:statement` nodes, converting them to a sequence of ASTs, and creating a `:statement_list` AST with the `:statement` ASTs as children.  As a way of getting started, here is an implementation of `flatten-statement-list` that correctly handles the first statement:
+
+{% highlight clojure %}
+(defn flatten-statement-list [node]
+  (let [stmt (node/get-child node 0)
+        stmt-ast (build-ast stmt)]
+    (node/make-node :statement_list [stmt-ast])))
+{% endhighlight %}
+
+The full version of `flatten-statement-list` should use a `loop/recur` construct to recursively find all of the statements and convert them to ASTs.
+
+# Testing
+
+You can test your **build-ast** function by changing the definition of the **testprog** variable (defined towards the bottom of `astbuilder.clj`.  The value of this variable is parsed, an AST is constructed from the resulting parse tree, **build-ast** is called to convert the parse tree to an AST, and the AST is assigned to the variable **prog**.
+
+In a REPL, you can evaluate
+
+{% highlight clojure %}
+(pp/pretty-print ast)
+{% endhighlight %}
+
+to print the AST.
+
+Here are some example inputs and the expected ASTs:
+
+Example input:
+
+    var a; a := 3*4;
+
+Expected AST:
+
+    :unit
+    +--:statement_list
+       +--:var_decl_statement
+       |  +--:identifier["a"]
+       +--:expression_statement
+          +--:op_assign
+             +--:identifier["a"]
+             +--:op_mul
+                +--:int_literal["3"]
+                +--:int_literal["4"]
 
 Example input:
 
     a * (b + 3);
 
-Expected output:
+Expected AST:
 
     :unit
     +--:statement_list
-       +--:statement
-          +--:expression_statement
-             +--:op_mul
-             |  +--:primary
-             |  |  +--:identifier["a"]
-             |  +--:primary
-             |     +--:lparen["("]
-             |     +--:op_plus
-             |     |  +--:primary
-             |     |  |  +--:identifier["b"]
-             |     |  +--:primary
-             |     |     +--:int_literal["3"]
-             |     +--:rparen[")"]
-             +--:semicolon[";"]
+       +--:expression_statement
+          +--:op_mul
+             +--:identifier["a"]
+             +--:op_plus
+                +--:identifier["b"]
+                +--:int_literal["3"]
 
 Example input:
 
-    while (a < b) { a := a * 4; }
+    while (a <= b) { c; d*e*4; }
 
-Expected parse tree:
+Expected AST:
 
     :unit
     +--:statement_list
-       +--:statement
-          +--:while_statement
-             +--:while["while"]
-             +--:lparen["("]
-             +--:op_lt
-             |  +--:primary
-             |  |  +--:identifier["a"]
-             |  +--:primary
-             |     +--:identifier["b"]
-             +--:rparen[")"]
-             +--:lbrace["{"]
-             +--:statement_list
-             |  +--:statement
-             |     +--:expression_statement
-             |        +--:op_assign
-             |        |  +--:primary
-             |        |  |  +--:identifier["a"]
-             |        |  +--:op_mul
-             |        |     +--:primary
-             |        |     |  +--:identifier["a"]
-             |        |     +--:primary
-             |        |        +--:int_literal["4"]
-             |        +--:semicolon[";"]
-             +--:rbrace["}"]
+       +--:while_statement
+          +--:op_lte
+          |  +--:identifier["a"]
+          |  +--:identifier["b"]
+          +--:statement_list
+             +--:expression_statement
+             |  +--:identifier["c"]
+             +--:expression_statement
+                +--:op_mul
+                   +--:op_mul
+                   |  +--:identifier["d"]
+                   |  +--:identifier["e"]
+                   +--:int_literal["4"]
 
 Example input:
 
-    if ( (a + b) / 5 >= 44 ) { c := c ^ (2 + d); }
+    if (x != 4) { y := z*3; }
 
-Expected parse tree:
+Expected AST:
 
     :unit
     +--:statement_list
-       +--:statement
-          +--:if_statement
-             +--:if["if"]
-             +--:lparen["("]
-             +--:op_gte
-             |  +--:op_div
-             |  |  +--:primary
-             |  |  |  +--:lparen["("]
-             |  |  |  +--:op_plus
-             |  |  |  |  +--:primary
-             |  |  |  |  |  +--:identifier["a"]
-             |  |  |  |  +--:primary
-             |  |  |  |     +--:identifier["b"]
-             |  |  |  +--:rparen[")"]
-             |  |  +--:primary
-             |  |     +--:int_literal["5"]
-             |  +--:primary
-             |     +--:int_literal["44"]
-             +--:rparen[")"]
-             +--:lbrace["{"]
-             +--:statement_list
-             |  +--:statement
-             |     +--:expression_statement
-             |        +--:op_assign
-             |        |  +--:primary
-             |        |  |  +--:identifier["c"]
-             |        |  +--:op_exp
-             |        |     +--:primary
-             |        |     |  +--:identifier["c"]
-             |        |     +--:primary
-             |        |        +--:lparen["("]
-             |        |        +--:op_plus
-             |        |        |  +--:primary
-             |        |        |  |  +--:int_literal["2"]
-             |        |        |  +--:primary
-             |        |        |     +--:identifier["d"]
-             |        |        +--:rparen[")"]
-             |        +--:semicolon[";"]
-             +--:rbrace["}"]
+       +--:if_statement
+          +--:op_neq
+          |  +--:identifier["x"]
+          |  +--:int_literal["4"]
+          +--:statement_list
+             +--:expression_statement
+                +--:op_assign
+                   +--:identifier["y"]
+                   +--:op_mul
+                      +--:identifier["z"]
+                      +--:int_literal["3"]
+
+# Grading
+
+Your assignment grade will be determined as follows:
+
+* Flattening of statement lists: 40%
+* Removing unnecessary nonterminal nodes: 15%
+* Removing unnecessary terminal nodes: 15%
+* Binary expressions: 15%
+* If and while statements: 15%
 
 # Submitting
 
 When you are done, submit the lab to the Marmoset server using either of the methods below.
 
 > **Important**: after you submit, log into the submission server and verify that the correct files were uploaded. You are responsible for ensuring that you upload the correct files. I may assign a grade of 0 for an incorrectly submitted assignment.
+
+From Eclipse
+------------
+
+If you have the [Simple Marmoset Uploader Plugin](../resources/index.html) installed, select the project (**cs340-assign06**) in the package explorer and then press the blue up arrow button in the toolbar. Enter your Marmoset username and password when prompted.
 
 From a web browser
 ------------------
