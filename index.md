@@ -20,6 +20,7 @@ This is the website for CS 340, Fall 2018 at York College.  All information abou
 
 ## News
 
+* **Nov 13** &mdash; [Assignment 7](assign/assign07.html) has been posted, due Tuesday, Dec 11th.
 * **Nov 10** &mdash; [Assignment 6](assign/assign06.html) has been posted, due Tuesday, Dec 4th.
 * **Nov 6** &mdash; For Exam 2 on Thursday, you may bring one page (single-sided) of hand-written notes.
 * **Oct 30** &mdash; [Assignment 5](assign/assign05.html) has been posted, due Tuesday, Nov 20th.

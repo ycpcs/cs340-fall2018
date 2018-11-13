@@ -16,7 +16,4 @@ All assignments are due by 11:59 PM on the due date.
 > [Assignment 4.5: Clojure MOOC](assign04_5.html) | n/a | MS 1: Friday, Oct 19th<br>MS 2: Friday, Oct 26th<br>MS 3: Friday, Nov 2nd
 > [Assignment 5: Boolean Function Synthesis](assign05.html) | n/a | Tuesday, Nov 20th
 > [Assignment 6: Abstract Syntax Trees](assign06.html) | [cs340-assign06.zip](cs340-assign06.zip) | Tuesday, Dec 4th
-
-<!--
 > [Assignment 7: Code Generation](assign07.html) | [cs340-assign07.zip](cs340-assign07.zip) | Tuesday, Dec 11th
--->

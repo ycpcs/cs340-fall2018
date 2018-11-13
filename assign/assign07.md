@@ -3,7 +3,7 @@ layout: default
 title: "Assignment 7: Code Generation"
 ---
 
-**Due**: Tuesday, Dec 12th by 11:59 PM
+**Due**: Tuesday, Dec 11th by 11:59 PM
 
 # Getting Started
 
@@ -11,13 +11,7 @@ Download [cs340-assign07.zip](cs340-assign07.zip).
 
 If you are using Counterclockwise under Eclipse, you can import the zipfile as an Eclipse project.
 
-You should copy your `parser2.clj` and `astbuilder.clj` files from [Assignment 7](assign07.html) into the `src/minilang` directory.  <!-- Note that you will need to make a few changes to them as described below. -->
-
-<!--
-*Update 12/6*: The original assignment skeleton included the wrong version of `prettyprint.clj`.  Please download the correct one and copy it into the `src/minilang` folder:
-
-> [prettyprint.clj](prettyprint.clj)
--->
+You should copy your `astbuilder.clj` file from [Assignment 6](assign06.html) into the `src/minilang` directory.
 
 # Your Task
 
