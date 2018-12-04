@@ -20,6 +20,9 @@ This is the website for CS 340, Fall 2018 at York College.  All information abou
 
 ## News
 
+* **Dec 4** &mdash; Final exam times are:
+    * Section 101: Saturday, Dec 15th, 8:00 AM - 10:00 AM
+    * Section 102: Thursday, Dec 13th, 10:15 AM - 12:15 PM
 * **Nov 13** &mdash; [Assignment 7](assign/assign07.html) has been posted, due Tuesday, Dec 11th.
 * **Nov 10** &mdash; [Assignment 6](assign/assign06.html) has been posted, due Tuesday, Dec 4th.
 * **Nov 6** &mdash; For Exam 2 on Thursday, you may bring one page (single-sided) of hand-written notes.
