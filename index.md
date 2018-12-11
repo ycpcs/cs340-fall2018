@@ -20,6 +20,7 @@ This is the website for CS 340, Fall 2018 at York College.  All information abou
 
 ## News
 
+* **Dec 11** &mdash; If you have completed the extra credit option for [Assignment 7](assign/assign07.html) and you would like receive credit for it, send me an email today stating that (1) you did not discuss the extra credit with anyone, and (2) you did not give or receive any help concerning the extra credit.
 * **Dec 4** &mdash; Final exam times are:
     * Section 101: Saturday, Dec 15th, 8:00 AM - 10:00 AM
     * Section 102: Thursday, Dec 13th, 10:15 AM - 12:15 PM
