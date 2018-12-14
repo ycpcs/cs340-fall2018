@@ -3,7 +3,7 @@ layout: default
 title: "Implementing Control Flow"
 ---
 
-This document discusses how to implement control flow (**if** and **while** statements) as extra credit for [Assignment 5](assign08.html).
+This document discusses how to implement control flow (**if** and **while** statements) as extra credit for [Assignment 7](assign07.html).
 
 <div class="callout"><b>Important</b>: Don't work on the extra credit unless the standard features of your code generator are completely working.</div>
 
